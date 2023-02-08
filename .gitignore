@@ -170,5 +170,6 @@ poetry.toml
 # exclude data from source control by default
 /data/
 /tools/
+/test/
 
 # End of https://www.toptal.com/developers/gitignore/api/python
