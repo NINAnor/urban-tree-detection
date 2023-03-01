@@ -3,13 +3,70 @@
 # perform_tree_detection_v1.py
 # Description: Translation of Hanssen et al. (2021) tree detection algorithm
 # from ArcMap model builder to ArcPy script - Version 1
-# Author: Zofie Cimburova
+# Author: Zofie Cimburova, Willeke A'Campo
+# Dependencies: ArcGIS Pro 3.0, 3D analyst, image analyst, spatial analyst
 # ---------------------------------------------------------------------------
 
-# Import arcpy module
+# ------------------------------------------------------ #
+# TO DO
+# ------------------------------------------------------ #
+# variables to .env 
+# test code for Bodø 
+# init user-parameters in batch (see lakseskart PROCEDURE)
+# time script 
+# object-based coding instead of function-based 
+# use __init__.py
+# ------------------------------------------------------ #
+
+# Import modules
 import arcpy
-import os
 from arcpy import env
+import os
+import time
+import dotenv
+from dotenv import dotenv_values
+
+# set the municipality (kommune) to be analyzed
+kommune = "bodo"
+spatial_reference = "ETRS 1989 UTM Zone 33N"
+tile = "XXX-YYY"
+
+start_time0 = time.time()
+# ------------------------------------------------------ #
+# Variables  
+# ------------------------------------------------------ #
+
+# search for .env file in USER directory 
+# user_dir = C:\\USERS\\<<firstname.lastname>>
+user_dir = os.path.join(os.path.expanduser("~"))
+dotenv_path = os.path.join(user_dir, '.env')
+
+dotenv.load_dotenv(dotenv_path)
+config = dotenv_values(dotenv_path)
+
+# set secure variables
+# source dataset path variables
+FKB_BUILDING_PATH = os.getenv('FKB_BUILDING_PATH')
+FKB_WATER_PATH = os.getenv('FKB_WATER_PATH')
+
+# project data path variables 
+DATA_PATH = os.getenv('DATA_PATH')
+raw_data_path = os.path.join(DATA_PATH, kommune, "raw")
+interim_data_path = os.path.join(DATA_PATH, kommune, "interim")
+processed_data_path = os.path.join(DATA_PATH, kommune, "processed")
+
+# specific file paths
+lidar_path = os.path.join(interim_data_path, "lidar")
+neighbourhood_path = os.path.join(interim_data_path, "neighbourhoods.gdb\\")
+output_path = os.path.join(processed_data_path,"data.gdb\\")
+
+# old variables
+#path_bydel = "neighbourhoods.gdb\\" # IF NECESSARY, CHANGE PATH TO GEODATABASE STORING NEIGHBOURHOOD POLYGONS
+#path_output = "data.gdb\\" # IF NECESSARY, CHANGE PATH TO GEODATABASE STORING OUTPUT DATA
+#v_buildings = r"R:\GeoSpatialData\Topography\Norway_FKB\Original\FKB-Bygning FGDB-format\Basisdata_03_Oslo_5972_FKB-Bygning_FGDB\Basisdata_03_Oslo_5972_FKB-Bygning_FGDB.gdb\fkb_bygning_omrade" # IF NECESSARY, CHANGE PATH TO DATASET STORING BUILDING POLYGONS
+#v_water = r"R:\GeoSpatialData\Topography\Norway_FKB\Original\FKB-Vann FGDB-format\Basisdata_0000_Norge_5973_FKB-Vann_FGDB\Basisdata_0000_Norge_5973_FKB-Vann_FGDB.gdb\fkb_vann_omrade" # IF NECESSARY, CHANGE PATH TO DATASET STORING WATER POLYGONS
+
+
 
 # ------------------------------------------------------ #
 # Functions
@@ -45,39 +102,76 @@ def join_and_copy(t_dest, join_a_dest, t_src, join_a_src, a_src, a_dest):
 # Workspace settings
 # ------------------------------------------------------ #
 env.overwriteOutput = True
-env.outputCoordinateSystem = arcpy.SpatialReference("ETRS 1989 UTM Zone 32N")
-env.workspace = r"P:\15220700_gis_samordning_2022_(marea_spare_ecogaps)\Zofie\synergi_3_tree_accounts\DATA" # IF NECESSARY, CHANGE PATH TO DATA DIRECTORY
-
+env.outputCoordinateSystem = arcpy.SpatialReference(spatial_reference)
+env.workspace = interim_data_path
 
 # ------------------------------------------------------ #
 # Inputs
 # ------------------------------------------------------ #
-path_bydel = "neighbourhoods.gdb\\" # IF NECESSARY, CHANGE PATH TO GEODATABASE STORING NEIGHBOURHOOD POLYGONS
-path_output = "data.gdb\\" # IF NECESSARY, CHANGE PATH TO GEODATABASE STORING OUTPUT DATA
-v_buildings = r"R:\GeoSpatialData\Topography\Norway_FKB\Original\FKB-Bygning FGDB-format\Basisdata_03_Oslo_5972_FKB-Bygning_FGDB\Basisdata_03_Oslo_5972_FKB-Bygning_FGDB.gdb\fkb_bygning_omrade" # IF NECESSARY, CHANGE PATH TO DATASET STORING BUILDING POLYGONS
-v_water = r"R:\GeoSpatialData\Topography\Norway_FKB\Original\FKB-Vann FGDB-format\Basisdata_0000_Norge_5973_FKB-Vann_FGDB\Basisdata_0000_Norge_5973_FKB-Vann_FGDB.gdb\fkb_vann_omrade" # IF NECESSARY, CHANGE PATH TO DATASET STORING WATER POLYGONS
+
+arcpy.AddMessage("-"*100)
+arcpy.AddMessage("arcpy worksapce:\t" + env.workspace)
+arcpy.AddMessage("neighbourhood_path:\t" + neighbourhood_path + "\n")
+end_time0 = time.time()
+execution_time0 = end_time0 - start_time0
+arcpy.AddMessage("Processing time model set-up:\t {:.2f} sec".format(execution_time0))
+arcpy.AddMessage("-"*100)
+
+
+
 
 
 # ------------------------------------------------------ #
 # 1. Detect tree polygons (crowns) and tree points (tops) per neighbourhood
 # ------------------------------------------------------ #
+start_time1 = time.time()
 arcpy.AddMessage("Step 1: Detecting tree polygons and points per neighbourhood...")
 
 # Iterate over bydel (here adjusted for Oslo - 16 bydel numbered 01-16 with prefix 0301)
 list_tree_pnt_names = []
 list_tree_poly_names = []  
 
+# Change BYDEL to TILE code 
 for i in range (1, 17): # IF NECESSARY, CHANGE NUMBER OF BYDEL
 
-    bydel_code = "0301" + str(i).zfill(2) # IF NECESSARY, CHANGE CODE PREFIX OF BYDEL
+    bydel_code= "test"
+    #bydel_code = "0301" + str(i).zfill(2) # IF NECESSARY, CHANGE CODE PREFIX OF BYDEL
     arcpy.AddMessage("  PROCESSING BYDEL {}".format(bydel_code))
     arcpy.AddMessage("  ---------------------".format(bydel_code))
    
-    v_bydel = path_bydel + "\\b_" + bydel_code
+    #v_bydel = neighbourhood_path + "\\b_" + bydel_code
     l_las_folder = r"lidar\{}".format(bydel_code) # IF NECESSARY, CHANGE PATH TO .las FILES
+    
+    
+    #check output paths
+    d_las = "data_" + bydel_code + "_001_lasdataset.lasd"
+    r_rgb = output_path + "data_" + bydel_code + "_002_rgb" 
+    r_tgi = output_path + "data_" + bydel_code + "_003_tgi"
+    v_tgi = output_path + "data_" + bydel_code + "_004_tgi"  
+    r_dem = output_path + "data_" + bydel_code + "_005_dem" 
+    r_dsm = output_path + "data_" + bydel_code + "_006_dsm"
+    r_chm = output_path + "data_" + bydel_code + "_007_chm"
+    r_chm_tgi = output_path + "data_" + bydel_code + "_008_chm_tgi"
+    r_chm_h = output_path + "data_" + bydel_code + "_009_chm_h"
+    r_chm_smooth = output_path + "data_" + bydel_code + "_010_chm_smooth"
+    r_chm_flip = output_path + "data_" + bydel_code + "_011_chm_flip"
+    r_flowdir = output_path + "data_" + bydel_code + "_012_flowdir"
+    r_sinks = output_path + "data_" + bydel_code + "_013_sinks"
+    r_watersheds = output_path + "data_" + bydel_code + "_014_watersheds"
+    r_focflow = output_path + "data_" + bydel_code + "_015_focflow"
+    r_focflow_01 = output_path + "data_" + bydel_code + "_016_focflow_01"
+    v_treetop_poly = output_path + "data_" + bydel_code + "_017_treetop_poly"
+    v_treetop_pnt = output_path + "data_" + bydel_code + "_018_treetop_pnt"
+    v_watersheds = output_path + "data_" + bydel_code + "_019_watersheds"
+
+    arcpy.AddMessage(d_las)
+    arcpy.AddMessage(r_dsm)
+
+    
     
     # ------------------------------------------------------ #
     # 1.1 Create LAS Dataset
+    # change d_las name lasdata_XXXYYY.lsd
     # ------------------------------------------------------ #
     arcpy.AddMessage("  1.1: Creating LAS Dataset...")
     
@@ -87,13 +181,17 @@ for i in range (1, 17): # IF NECESSARY, CHANGE NUMBER OF BYDEL
         out_las_dataset = d_las, 
         relative_paths = "RELATIVE_PATHS"
     )
-
+    end_time1 = time.time()
+    execution_time1 = end_time1 - start_time1
+    arcpy.AddMessage("  TIME:\t {:.2f} sec".format(execution_time1))
+    
     # ------------------------------------------------------ #
     # 1.2 Create RGB image
     # ------------------------------------------------------ #
+    start_time1 = time.time()
     arcpy.AddMessage("  1.2: Creating RGB image...")
     
-    r_rgb = path_output + "data_" + bydel_code + "_002_rgb" 
+    r_rgb = output_path + "data_" + bydel_code + "_002_rgb" 
     arcpy.LasDatasetToRaster_conversion(
         in_las_dataset = d_las, 
         out_raster = r_rgb, 
@@ -104,13 +202,17 @@ for i in range (1, 17): # IF NECESSARY, CHANGE NUMBER OF BYDEL
         sampling_value = "1", 
         z_factor = "1"
     )
-
+    
+    end_time1 = time.time()
+    execution_time1 = end_time1 - start_time1
+    arcpy.AddMessage("  TIME:\t {:.2f} sec".format(execution_time1))
     # ------------------------------------------------------ #
     # 1.3 Create vegetation mask
     # ------------------------------------------------------ #
+    start_time1 = time.time()
     arcpy.AddMessage("  1.3: Creating vegetation mask...")
     
-    r_tgi = path_output + "data_" + bydel_code + "_003_tgi" 
+    r_tgi = output_path + "data_" + bydel_code + "_003_tgi" 
     band_1 = arcpy.sa.Raster(r_rgb + "\\Band_1")
     band_2 = arcpy.sa.Raster(r_rgb + "\\Band_2")
     band_3 = arcpy.sa.Raster(r_rgb + "\\Band_3")
@@ -119,12 +221,16 @@ for i in range (1, 17): # IF NECESSARY, CHANGE NUMBER OF BYDEL
     output.save(os.path.join(env.workspace, r_tgi))
     arcpy.Delete_management(r_rgb)
     
+    end_time1 = time.time()
+    execution_time1 = end_time1 - start_time1
+    arcpy.AddMessage("  TIME:\t {:.2f} sec".format(execution_time1))
     # ------------------------------------------------------ #
     # 1.4 Vectorize vegetation mask
     # ------------------------------------------------------ #
+    start_time1 = time.time()
     arcpy.AddMessage("  1.4: Vectorizing vegetation mask...")
     
-    v_tgi = path_output + "data_" + bydel_code + "_004_tgi" 
+    v_tgi = output_path + "data_" + bydel_code + "_004_tgi" 
     arcpy.RasterToPolygon_conversion(
         in_raster = r_tgi,
         out_polygon_features = v_tgi, 
@@ -135,9 +241,13 @@ for i in range (1, 17): # IF NECESSARY, CHANGE NUMBER OF BYDEL
     )
     arcpy.Delete_management(r_tgi)
     
+    end_time1 = time.time()
+    execution_time1 = end_time1 - start_time1
+    arcpy.AddMessage("  TIME:\t {:.2f} sec".format(execution_time1))
     # ------------------------------------------------------ #
     # 1.5 Create DEM
     # ------------------------------------------------------ #
+    start_time1 = time.time()
     arcpy.AddMessage("  1.5: Creating DEM...")
 
     # select DEM points (= terrain)
@@ -155,7 +265,7 @@ for i in range (1, 17): # IF NECESSARY, CHANGE NUMBER OF BYDEL
     )
 
     # convert to DEM raster
-    r_dem = path_output + "data_" + bydel_code + "_005_dem" 
+    r_dem = output_path + "data_" + bydel_code + "_005_dem" 
     arcpy.conversion.LasDatasetToRaster(
         in_las_dataset = l_dem,
         out_raster = r_dem,
@@ -167,9 +277,13 @@ for i in range (1, 17): # IF NECESSARY, CHANGE NUMBER OF BYDEL
         z_factor = 1
     )
 
+    end_time1 = time.time()
+    execution_time1 = end_time1 - start_time1
+    arcpy.AddMessage("  TIME:\t {:.2f} sec".format(execution_time1))
     # ------------------------------------------------------ #
     # 1.6 Create DSM
     # ------------------------------------------------------ #
+    start_time1 = time.time()
     arcpy.AddMessage("  1.6: Creating DSM...")
 
     # select DSM points (= surface)
@@ -187,7 +301,7 @@ for i in range (1, 17): # IF NECESSARY, CHANGE NUMBER OF BYDEL
     )
 
     # convert to DSM raster
-    r_dsm = path_output + "data_" + bydel_code + "_006_dsm" 
+    r_dsm = output_path + "data_" + bydel_code + "_006_dsm" 
     arcpy.conversion.LasDatasetToRaster(
         in_las_dataset = l_dsm,
         out_raster = r_dsm,
@@ -199,13 +313,16 @@ for i in range (1, 17): # IF NECESSARY, CHANGE NUMBER OF BYDEL
         z_factor = 1
     )
     arcpy.Delete_management(d_las)
-
+    
+    end_time1 = time.time()
+    execution_time1 = end_time1 - start_time1
+    arcpy.AddMessage("  TIME:\t {:.2f} sec".format(execution_time1))
     # ------------------------------------------------------ #
     # 1.7 Create CHM
     # ------------------------------------------------------ #
     arcpy.AddMessage("  1.7: Creating CHM...")
     
-    r_chm = path_output + "data_" + bydel_code + "_007_chm"
+    r_chm = output_path + "data_" + bydel_code + "_007_chm"
     arcpy.gp.RasterCalculator_sa(
         '"{}"-"{}"'.format(r_dsm, r_dem), 
         r_chm
@@ -217,7 +334,7 @@ for i in range (1, 17): # IF NECESSARY, CHANGE NUMBER OF BYDEL
     # ------------------------------------------------------ #
     arcpy.AddMessage("  1.8: Refining CHM with vegetation mask...")
     
-    r_chm_tgi = path_output + "data_" + bydel_code + "_008_chm_tgi"
+    r_chm_tgi = output_path + "data_" + bydel_code + "_008_chm_tgi"
     arcpy.gp.ExtractByMask_sa(
         r_chm, 
         v_tgi, 
@@ -230,7 +347,7 @@ for i in range (1, 17): # IF NECESSARY, CHANGE NUMBER OF BYDEL
     # ------------------------------------------------------ #
     arcpy.AddMessage("  1.9: Filtering CHM by minimum height...")
     
-    r_chm_h = path_output + "data_" + bydel_code + "_009_chm_h"
+    r_chm_h = output_path + "data_" + bydel_code + "_009_chm_h"
     h = 2.5
     arcpy.gp.ExtractByAttributes_sa(
         r_chm_tgi, 
@@ -244,7 +361,7 @@ for i in range (1, 17): # IF NECESSARY, CHANGE NUMBER OF BYDEL
     # ------------------------------------------------------ #
     arcpy.AddMessage("  1.10: Refining CHM by focal maximum filter...")
     
-    r_chm_smooth = path_output + "data_" + bydel_code + "_010_chm_smooth"
+    r_chm_smooth = output_path + "data_" + bydel_code + "_010_chm_smooth"
     arcpy.gp.FocalStatistics_sa(
         r_chm_h, 
         r_chm_smooth, 
@@ -259,7 +376,7 @@ for i in range (1, 17): # IF NECESSARY, CHANGE NUMBER OF BYDEL
     # ------------------------------------------------------ #
     arcpy.AddMessage("  1.11: Flipping CHM...")
     
-    r_chm_flip = path_output + "data_" + bydel_code + "_011_chm_flip"
+    r_chm_flip = output_path + "data_" + bydel_code + "_011_chm_flip"
     arcpy.gp.RasterCalculator_sa(
         '"{}"*(-1)'.format(r_chm_smooth), 
         r_chm_flip
@@ -271,7 +388,7 @@ for i in range (1, 17): # IF NECESSARY, CHANGE NUMBER OF BYDEL
     # ------------------------------------------------------ #
     arcpy.AddMessage("  1.12: Computing flow direction...")
     
-    r_flowdir = path_output + "data_" + bydel_code + "_012_flowdir"
+    r_flowdir = output_path + "data_" + bydel_code + "_012_flowdir"
     arcpy.gp.FlowDirection_sa(
         r_chm_flip, 
         r_flowdir
@@ -283,7 +400,7 @@ for i in range (1, 17): # IF NECESSARY, CHANGE NUMBER OF BYDEL
     # ------------------------------------------------------ #
     arcpy.AddMessage("  1.13: Identifying sinks...")
     
-    r_sinks = path_output + "data_" + bydel_code + "_013_sinks"
+    r_sinks = output_path + "data_" + bydel_code + "_013_sinks"
     arcpy.gp.Sink_sa(
         r_flowdir, 
         r_sinks
@@ -294,7 +411,7 @@ for i in range (1, 17): # IF NECESSARY, CHANGE NUMBER OF BYDEL
     # ------------------------------------------------------ #
     arcpy.AddMessage("  1.14: Identifying watersheds...")
     
-    r_watersheds = path_output + "data_" + bydel_code + "_014_watersheds"
+    r_watersheds = output_path + "data_" + bydel_code + "_014_watersheds"
     arcpy.gp.Watershed_sa(
         r_flowdir,
         r_sinks,
@@ -308,7 +425,7 @@ for i in range (1, 17): # IF NECESSARY, CHANGE NUMBER OF BYDEL
     # ------------------------------------------------------ #
     arcpy.AddMessage("  1.15: Identifying tree tops by focal flow...")
     
-    r_focflow = path_output + "data_" + bydel_code + "_015_focflow"
+    r_focflow = output_path + "data_" + bydel_code + "_015_focflow"
     arcpy.gp.FocalFlow_sa(
         r_sinks, 
         r_focflow,
@@ -321,7 +438,7 @@ for i in range (1, 17): # IF NECESSARY, CHANGE NUMBER OF BYDEL
     # ------------------------------------------------------ #
     arcpy.AddMessage("  1.16: Identifying tree tops by converting focal flow values from 0 to 1...")
     
-    r_focflow_01 = path_output + "data_" + bydel_code + "_016_focflow_01"
+    r_focflow_01 = output_path + "data_" + bydel_code + "_016_focflow_01"
     arcpy.gp.RasterCalculator_sa(
         'Con("{}" == 0, 1)'.format(r_focflow), 
         r_focflow_01
@@ -333,7 +450,7 @@ for i in range (1, 17): # IF NECESSARY, CHANGE NUMBER OF BYDEL
     # ------------------------------------------------------ #
     arcpy.AddMessage("  1.17: Vectorizing tree tops to polygons...")
     
-    v_treetop_poly = path_output + "data_" + bydel_code + "_017_treetop_poly"
+    v_treetop_poly = output_path + "data_" + bydel_code + "_017_treetop_poly"
     arcpy.RasterToPolygon_conversion(
         in_raster = r_focflow_01,
         out_polygon_features = v_treetop_poly, 
@@ -349,7 +466,7 @@ for i in range (1, 17): # IF NECESSARY, CHANGE NUMBER OF BYDEL
     # ------------------------------------------------------ #
     arcpy.AddMessage("  1.18: Converting tree top polygons to points...")
     
-    v_treetop_pnt = path_output + "data_" + bydel_code + "_018_treetop_pnt"
+    v_treetop_pnt = output_path + "data_" + bydel_code + "_018_treetop_pnt"
     arcpy.FeatureToPoint_management(
         in_features = v_treetop_poly,
         out_feature_class = v_treetop_pnt, 
@@ -371,7 +488,7 @@ for i in range (1, 17): # IF NECESSARY, CHANGE NUMBER OF BYDEL
     # ------------------------------------------------------ #
     arcpy.AddMessage("  1.19: Identifying tree crowns by vectorizing watersheds...")
     
-    v_watersheds = path_output + "data_" + bydel_code + "_019_watersheds"
+    v_watersheds = output_path + "data_" + bydel_code + "_019_watersheds"
     arcpy.RasterToPolygon_conversion(
         in_raster = r_watersheds,
         out_polygon_features = v_watersheds, 
@@ -391,7 +508,7 @@ for i in range (1, 17): # IF NECESSARY, CHANGE NUMBER OF BYDEL
         v_treetop_pnt, 
         "tree_pnt_lyr"
     )
-    
+    v_bydel= "test"
     arcpy.SelectLayerByLocation_management(
         l_tree_pnt, 
         "INTERSECT",
@@ -400,7 +517,7 @@ for i in range (1, 17): # IF NECESSARY, CHANGE NUMBER OF BYDEL
         "NEW_SELECTION"
     )
     
-    v_tree_pnt = path_output + "data_" + bydel_code + "_tree_pnt"
+    v_tree_pnt = output_path + "data_" + bydel_code + "_tree_pnt"
     arcpy.CopyFeatures_management(
         in_features = l_tree_pnt,
         out_feature_class = v_tree_pnt
@@ -437,7 +554,7 @@ for i in range (1, 17): # IF NECESSARY, CHANGE NUMBER OF BYDEL
         "NEW_SELECTION"
     )
 
-    v_tree_poly = path_output + "data_" + bydel_code + "_tree_poly"
+    v_tree_poly = output_path + "data_" + bydel_code + "_tree_poly"
     arcpy.CopyFeatures_management(
         in_features = l_tree_poly,
         out_feature_class = v_tree_poly
@@ -457,6 +574,7 @@ for i in range (1, 17): # IF NECESSARY, CHANGE NUMBER OF BYDEL
     list_tree_poly_names.append(v_tree_poly)
 
     arcpy.AddMessage("  ---------------------")
+    break 
 
 
 # ------------------------------------------------------ #
@@ -464,13 +582,13 @@ for i in range (1, 17): # IF NECESSARY, CHANGE NUMBER OF BYDEL
 # ------------------------------------------------------ #
 arcpy.AddMessage("Step 2: Merging detected trees into one file...")
 
-v_tree_poly_merge = path_output + "data_200_tree_poly_merge"
+v_tree_poly_merge = output_path + "data_200_tree_poly_merge"
 arcpy.Merge_management(
     inputs = list_tree_poly_names,
     output = v_tree_poly_merge
 )
 
-v_tree_pnt_merge = path_output + "data_200_tree_pnt_merge"
+v_tree_pnt_merge = output_path + "data_200_tree_pnt_merge"
 arcpy.Merge_management(
     inputs = list_tree_pnt_names,
     output = v_tree_pnt_merge
@@ -484,7 +602,7 @@ arcpy.AddMessage("Step 3: Selecting trees outside buildings and sea...")
 
 # Define sea
 l_sea = arcpy.MakeFeatureLayer_management(
-    v_water, 
+    FKB_WATER_PATH, 
     "sea_lyr"
 )
 
@@ -494,7 +612,7 @@ arcpy.SelectLayerByAttribute_management(
     "objtype = 'Havflate'"    
 )
 
-v_sea = path_output + "tmp_sea"
+v_sea = output_path + "tmp_sea"
 arcpy.CopyFeatures_management(
     in_features = l_sea,
     out_feature_class = v_sea
@@ -508,7 +626,7 @@ l_tree_pnt_outside = arcpy.MakeFeatureLayer_management(
 arcpy.SelectLayerByLocation_management(
     l_tree_pnt_outside, 
     "INTERSECT",
-    v_buildings,
+    FKB_BUILDING_PATH,
     "",
     "NEW_SELECTION",
     invert_spatial_relationship = True    
@@ -521,7 +639,7 @@ arcpy.SelectLayerByLocation_management(
     "REMOVE_FROM_SELECTION"
 )
 
-v_tree_pnt_result = path_output + "tree_pnt_OB_2021"
+v_tree_pnt_result = output_path + "tree_pnt_OB_2021"
 arcpy.CopyFeatures_management(
     in_features = l_tree_pnt_outside,
     out_feature_class = v_tree_pnt_result
@@ -542,7 +660,7 @@ arcpy.SelectLayerByLocation_management(
     "NEW_SELECTION",
 )
 
-v_tree_poly_result = path_output + "tree_poly_OB_2021"
+v_tree_poly_result = output_path + "tree_poly_OB_2021"
 arcpy.CopyFeatures_management(
     in_features = l_tree_poly_outside,
     out_feature_class = v_tree_poly_result
@@ -562,7 +680,7 @@ arcpy.AddField_management(v_tree_poly_result, "crown_id", "LONG")
 arcpy.CalculateField_management(v_tree_poly_result, "crown_id", '[OBJECTID]')
 
 # Compute crown diameter for each tree polygon using Minimum Bounding Geometry
-v_mbg = path_output + "tmp_mbg"
+v_mbg = output_path + "tmp_mbg"
 arcpy.MinimumBoundingGeometry_management(
     v_tree_poly_result,
     v_mbg,
@@ -587,7 +705,7 @@ arcpy.CalculateField_management(v_tree_poly_result, "crown_peri", '[Shape_Length
 arcpy.AddField_management(v_tree_pnt_result, "tmp_id", "LONG") # temporary ID for tree points to avoid issues with join_and_copy()
 arcpy.CalculateField_management(v_tree_pnt_result, "tmp_id", '[OBJECTID]')
 
-v_join = path_output + "tmp_join"
+v_join = output_path + "tmp_join"
 arcpy.SpatialJoin_analysis(
     v_tree_pnt_result,
     v_tree_poly_result, 
