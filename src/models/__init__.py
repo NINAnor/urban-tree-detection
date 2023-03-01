@@ -145,7 +145,7 @@ def create_vegMask(r_rgb, r_tgi):
 # 1. Detect tree polygons (crowns) and tree points (tops) per neighbourhood
 # ------------------------------------------------------ #
 
-arcpy.AddMessage("Step 1: Detecting tree polygons and points per las tile...")
+arcpy.AddMessage("Step 1: Detecting tree polygons and points per las tile")
 
 
 # Iterate over bydel (here adjusted for Oslo - 16 bydel numbered 01-16 with prefix 0301)
@@ -154,9 +154,9 @@ arcpy.AddMessage("Step 1: Detecting tree polygons and points per las tile...")
 
 n_tiles = len([f for f in os.listdir(lidar_path) if os.path.isdir(os.path.join(lidar_path, f))])
 
-arcpy.AddMessage("Number of Tiles in {} kommune: {}".format(kommune, n_tiles))
+arcpy.AddMessage("{} tiles are processed for {} kommune... {}".format(n_tiles, kommune))
 
-for i in range (1, n_tiles): # IF NECESSARY, CHANGE NUMBER OF BYDEL
+for i in range (1, n_tiles): # IF NECESSARY, CHANGE NUMBER OF TILES
 
     tile_code= "test"
 
