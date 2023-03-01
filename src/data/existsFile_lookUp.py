@@ -11,7 +11,7 @@ lookup_file = os.path.join(root, kommune,"lidar", kommune+"_LUT.csv")
 
 
 # Define the name of the output CSV file for files that are not downloaded
-not_downloaded_filename = os.path.join(root, kommune,"lidar\laz", "inside_BuildUpZone","file_not_downloaded.csv")
+log_filename = os.path.join(root, kommune,"lidar\laz", "inside_BuildUpZone","file_not_downloaded.csv")
 
 # Create a set to store the filenames from the lookup CSV
 lookup_filenames = set()
@@ -27,7 +27,7 @@ for filename in lookup_filenames:
     if not os.path.exists(filename):
         #print(filename, "does not exists")
         # If the file does not exist, write its filename to the output CSV file
-        with open(not_downloaded_filename, "a", newline="") as csvfile:
+        with open(log_filename, "a", newline="") as csvfile:
             writer = csv.writer(csvfile)
             writer.writerow([filename])
     else:
