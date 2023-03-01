@@ -55,6 +55,8 @@ coverage.xml
 .pytest_cache/
 cover/
 
+# VS code
+.vscode
 # Translations
 *.mo
 *.pot
@@ -171,5 +173,6 @@ poetry.toml
 /data/
 /tools/
 /test/
+/docs/
 
 # End of https://www.toptal.com/developers/gitignore/api/python
