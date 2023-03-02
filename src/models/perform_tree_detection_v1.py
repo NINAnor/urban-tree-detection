@@ -148,7 +148,7 @@ for i in range (1, 17): # IF NECESSARY, CHANGE NUMBER OF BYDEL
     r_rgb = output_path + "data_" + bydel_code + "_002_rgb" 
     r_tgi = output_path + "data_" + bydel_code + "_003_tgi"
     v_tgi = output_path + "data_" + bydel_code + "_004_tgi"  
-    r_dem = output_path + "data_" + bydel_code + "_005_dem" 
+    r_dtm = output_path + "data_" + bydel_code + "_005_dtm" 
     r_dsm = output_path + "data_" + bydel_code + "_006_dsm"
     r_chm = output_path + "data_" + bydel_code + "_007_chm"
     r_chm_tgi = output_path + "data_" + bydel_code + "_008_chm_tgi"
@@ -245,16 +245,16 @@ for i in range (1, 17): # IF NECESSARY, CHANGE NUMBER OF BYDEL
     execution_time1 = end_time1 - start_time1
     arcpy.AddMessage("  TIME:\t {:.2f} sec".format(execution_time1))
     # ------------------------------------------------------ #
-    # 1.5 Create DEM
+    # 1.5 Create DTM
     # ------------------------------------------------------ #
     start_time1 = time.time()
-    arcpy.AddMessage("  1.5: Creating DEM...")
+    arcpy.AddMessage("  1.5: Creating DTM...")
 
-    # select DEM points (= terrain)
-    l_dem = arcpy.CreateUniqueName('dem_lyr')
+    # select DTM points (= terrain)
+    l_dtm = arcpy.CreateUniqueName('dtm_lyr')
     arcpy.MakeLasDatasetLayer_management(
         in_las_dataset=d_las, 
-        out_layer=l_dem, 
+        out_layer=l_dtm, 
         class_code="2", 
         return_values="2", 
         no_flag="INCLUDE_UNFLAGGED", 
@@ -264,11 +264,11 @@ for i in range (1, 17): # IF NECESSARY, CHANGE NUMBER OF BYDEL
         surface_constraints=""
     )
 
-    # convert to DEM raster
-    r_dem = output_path + "data_" + bydel_code + "_005_dem" 
+    # convert to DTM raster
+    r_dtm = output_path + "data_" + bydel_code + "_005_dtm" 
     arcpy.conversion.LasDatasetToRaster(
-        in_las_dataset = l_dem,
-        out_raster = r_dem,
+        in_las_dataset = l_dtm,
+        out_raster = r_dtm,
         value_field = "ELEVATION",
         interpolation_type = "BINNING AVERAGE LINEAR",
         data_type = "INT",
@@ -324,10 +324,10 @@ for i in range (1, 17): # IF NECESSARY, CHANGE NUMBER OF BYDEL
     
     r_chm = output_path + "data_" + bydel_code + "_007_chm"
     arcpy.gp.RasterCalculator_sa(
-        '"{}"-"{}"'.format(r_dsm, r_dem), 
+        '"{}"-"{}"'.format(r_dsm, r_dtm), 
         r_chm
     )
-    arcpy.Delete_management(r_dem)
+    arcpy.Delete_management(r_dtm)
 
     # ------------------------------------------------------ #
     # 1.8 Refine CHM with vegetation mask
