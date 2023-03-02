@@ -26,11 +26,16 @@ import os
 import time
 import dotenv
 from dotenv import dotenv_values
+import control
+import tree
 
 # set the municipality (kommune) to be analyzed
 kommune = "oslo"
 spatial_reference = "ETRS 1989 UTM Zone 32N"
 tile = "XXX-YYY"
+
+rgb_is_available = True        # Baerum = True, Kristiandsand and Bodø = False 
+veg_is_available = True        # Baerum = True, Kristiandsand and Bodø = False 
 
 # start timer
 start_time0 = time.time()
@@ -66,17 +71,19 @@ output_path = os.path.join(processed_data_path,"data.gdb")
 #------------------------------------------------------ #
 # Workspace settings
 # ------------------------------------------------------ #
+Log = control.Log(processed_data_path,"tree_dectection_v1_log.txt")
 env.overwriteOutput = True
 env.outputCoordinateSystem = arcpy.SpatialReference(spatial_reference)
 env.workspace = interim_data_path
 
 
 arcpy.AddMessage("-"*100)
-arcpy.AddMessage("arcpy worksapce:\t" + env.workspace)
-arcpy.AddMessage("neighbourhood_path:\t" + neighbourhood_path + "\n")
-end_time0 = time.time()
-execution_time0 = end_time0 - start_time0
-arcpy.AddMessage("Processing time model set-up:\t {:.2f} sec".format(execution_time0))
+arcpy.AddMessage("municipality:\t\t\t" + kommune)
+arcpy.AddMessage("spatial reference:\t\t\t"+ spatial_reference)
+arcpy.AddMessage("LiDAR-tile:\t\t\t"+ tile)
+arcpy.AddMessage("RGB image available:\t\t\t"+ str(rgb_is_available))
+arcpy.AddMessage("Vegetation Classes available:\t\t\t"+ str(veg_is_available))
+arcpy.AddMessage("Output FileGDB:\t\t\t"+ output_path)
 arcpy.AddMessage("-"*100)
 
 
@@ -90,63 +97,13 @@ def end_time1(start_time1):
     execution_time1 = end_time1 - start_time1
     arcpy.AddMessage("  TIME:\t {:.2f} sec".format(execution_time1))
 
-def create_lasDataset(l_las_folder: str, d_las: str):
-    """
-    Creates a LAS dataset using the arcpy module.
-
-    Parameters:
-    - l_las_folder (str): The folder path where the LAS files are located.
-    - d_las (str): The output LAS dataset path and name.
-
-    Returns:
-    - None
-
-    Example Usage:
-    create_lasDataset("C:/data/las_files", "C:/data/las_datasets/tile_001.lasd")
-    """
-    
-    arcpy.AddMessage("  1.1: Creating LAS Dataset...")
-
-    arcpy.CreateLasDataset_management(
-        input=l_las_folder,
-        out_las_dataset=d_las,
-        relative_paths="RELATIVE_PATHS"
-    )
-
-def create_RGB(d_las, r_rgb):
-    arcpy.AddMessage("  1.2: Creating RGB image...")
-    
-    arcpy.LasDatasetToRaster_conversion(
-        in_las_dataset = d_las, 
-        out_raster = r_rgb, 
-        value_field = "RGB", 
-        interpolation_type = "BINNING NEAREST NATURAL_NEIGHBOR", 
-        data_type = "INT", 
-        sampling_type = "CELLSIZE", 
-        sampling_value = "1", 
-        z_factor = "1"
-    )
-
-
-def create_vegMask(r_rgb, r_tgi):
-    arcpy.AddMessage("  1.3: Creating vegetation mask...")
-
-    band_1 = arcpy.sa.Raster(r_rgb + "\\Band_1")
-    band_2 = arcpy.sa.Raster(r_rgb + "\\Band_2")
-    band_3 = arcpy.sa.Raster(r_rgb + "\\Band_3")
-
-    output = arcpy.sa.Con(((band_2 - (0.39 * band_1) - (0.61 * band_3)) >= 0), 1)
-    output.save(os.path.join(env.workspace, r_tgi))
-    arcpy.Delete_management(r_rgb)
-
-
 
 # ------------------------------------------------------ #
 # 1. Detect tree polygons (crowns) and tree points (tops) per neighbourhood
 # ------------------------------------------------------ #
 
 arcpy.AddMessage("Step 1: Detecting tree polygons and points per las tile")
-
+arcpy.AddMessage("-"*100)
 
 # Iterate over bydel (here adjusted for Oslo - 16 bydel numbered 01-16 with prefix 0301)
 #list_tree_pnt_names = []
@@ -154,48 +111,58 @@ arcpy.AddMessage("Step 1: Detecting tree polygons and points per las tile")
 
 n_tiles = len([f for f in os.listdir(lidar_path) if os.path.isdir(os.path.join(lidar_path, f))])
 
-arcpy.AddMessage("{} tiles are processed for {} kommune... {}".format(n_tiles, kommune))
+arcpy.AddMessage("In {} kommune {} tiles are processed... \n".format(kommune,n_tiles))
 
 for i in range (1, n_tiles): # IF NECESSARY, CHANGE NUMBER OF TILES
 
     tile_code= "test"
 
-    arcpy.AddMessage("  PROCESSING TILE <<{}>>".format(tile_code))
-    arcpy.AddMessage("  ---------------------".format(tile_code))
+    arcpy.AddMessage("\tPROCESSING TILE <<{}>>".format(tile_code))
+    arcpy.AddMessage("\t---------------------".format(tile_code))
    
     # temporary file paths 
     l_las_folder = r"lidar\{}".format(tile_code) # IF NECESSARY, CHANGE PATH TO .las FILES
-    d_las = "data_" + tile_code + "_001_lasdataset.lasd"
+    d_las = os.path.join(lidar_path, "data_" + tile_code + "_001.lasd")
     r_rgb = os.path.join(output_path, "data_" + tile_code + "_002_rgb")
     r_tgi = os.path.join(output_path, "data_" + tile_code + "_003_tgi")
     
     # ------------------------------------------------------ #
     # 1.1 Create LAS Dataset
     # ------------------------------------------------------ #
+    arcpy.AddMessage("\t1.1 Create LAS Dataset")
     
-    start_time1 = time.time()
-    create_lasDataset(l_las_folder,d_las)
-    end_time1(start_time1)
-
-    # ------------------------------------------------------ #
-    # 1.2 Create RGB image
-    # ------------------------------------------------------ #
-    start_time1 = time.time()
-    if arcpy.Exists(r_rgb):
-        arcpy.AddMessage("  RGB image for tile <<{}>> exists in database. Continue to 1.3.".format(tile_code))
+    if arcpy.Exists(d_las):
+        arcpy.AddMessage("\t\tLAS Dataset for tile <<{}>> exists in database. Continue ...".format(tile_code))  
     else:
-        create_RGB(d_las, r_rgb)
+        start_time1 = time.time()
+        tree.create_lasDataset(l_las_folder,d_las)
         end_time1(start_time1)
 
     # ------------------------------------------------------ #
-    # 1.3 Create vegetation mask
+    # 1.2 Create RGB image 
+    # 1.3 Create TGI vegetation mask
+    # not possible if RGB-colour is not available 
     # ------------------------------------------------------ #
-    start_time1 = time.time()
-    if arcpy.Exists(r_tgi):
-        arcpy.AddMessage("  Vegetation mask for tile <<{}>> exists in database. Continue to 1.3.".format(tile_code))
+    arcpy.AddMessage("\t1.2 Create RGB image and 1.3 Create TGI vegetation mask")
+    # check if rgb-image is available 
+    if rgb_is_available:
+        # check if file exists 
+        if arcpy.Exists(r_tgi):
+            arcpy.AddMessage("\t\tVegetation mask for tile <<{}>> exists in database. Continue ...".format(tile_code))
+        else:
+            start_time1 = time.time()
+            # create RGB-image
+            tree.create_RGB(d_las, r_rgb)
+            # create vegation mask     
+            tree.create_vegMask(r_rgb, r_tgi)
+            end_time1(start_time1)    
     else:
-        create_vegMask(r_rgb, r_tgi)
-        end_time1(start_time1) 
+        arcpy.AddMessage("\t\tRGB image for {} kommune does not exits. TGI mask cannot be created. Continue... ".format(kommune))
 
-    arcpy.AddMessage("  ---------------------")
+    arcpy.AddMessage("\t---------------------")
     break 
+
+
+end_time0 = time.time()
+execution_time0 = end_time0 - start_time0
+arcpy.AddMessage("TOTAL TIME:\t {:.2f} sec".format(execution_time0))
