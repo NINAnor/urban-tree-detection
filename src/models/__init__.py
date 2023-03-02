@@ -10,11 +10,9 @@
 # ------------------------------------------------------ #
 # TO DO
 # ------------------------------------------------------ #
-# variables to .env 
 # test code for Oslo (one tile) 
 # test code for Bodø 
 # init user-parameters in batch (see lakseskart PROCEDURE)
-# time script 
 # object-based coding instead of function-based 
 # use __init__.py
 # ------------------------------------------------------ #
@@ -36,6 +34,7 @@ tile = "XXX-YYY"
 
 rgb_is_available = True        # Baerum = True, Kristiandsand and Bodø = False 
 veg_is_available = True        # Baerum = True, Kristiandsand and Bodø = False 
+point_density = 10 
 
 # start timer
 start_time0 = time.time()
@@ -113,6 +112,12 @@ n_tiles = len([f for f in os.listdir(lidar_path) if os.path.isdir(os.path.join(l
 
 arcpy.AddMessage("In {} kommune {} tiles are processed... \n".format(kommune,n_tiles))
 
+
+
+
+
+
+
 for i in range (1, n_tiles): # IF NECESSARY, CHANGE NUMBER OF TILES
 
     tile_code= "test"
@@ -125,6 +130,10 @@ for i in range (1, n_tiles): # IF NECESSARY, CHANGE NUMBER OF TILES
     d_las = os.path.join(lidar_path, "data_" + tile_code + "_001.lasd")
     r_rgb = os.path.join(output_path, "data_" + tile_code + "_002_rgb")
     r_tgi = os.path.join(output_path, "data_" + tile_code + "_003_tgi")
+    v_tgi = os.path.join(output_path + "data_" + tile_code + "_004_tgi")
+    r_dtm = os.path.join(output_path + "data_" + tile_code + "_005_dtm")
+    r_dsm = os.path.join(output_path + "data_" + tile_code + "_006_dsm")
+    r_chm = os.path.join(output_path + "data_" + tile_code + "_007_chm")
     
     # ------------------------------------------------------ #
     # 1.1 Create LAS Dataset
@@ -141,6 +150,7 @@ for i in range (1, n_tiles): # IF NECESSARY, CHANGE NUMBER OF TILES
     # ------------------------------------------------------ #
     # 1.2 Create RGB image 
     # 1.3 Create TGI vegetation mask
+    # 1.4 Vectorize vegetation mask
     # not possible if RGB-colour is not available 
     # ------------------------------------------------------ #
     arcpy.AddMessage("\t1.2 Create RGB image and 1.3 Create TGI vegetation mask")
@@ -155,11 +165,63 @@ for i in range (1, n_tiles): # IF NECESSARY, CHANGE NUMBER OF TILES
             tree.create_RGB(d_las, r_rgb)
             # create vegation mask     
             tree.create_vegMask(r_rgb, r_tgi)
+            # vegetation mask to Vector 
+            tree.tgi_toVector(r_tgi, v_tgi)
             end_time1(start_time1)    
     else:
-        arcpy.AddMessage("\t\tRGB image for {} kommune does not exits. TGI mask cannot be created. Continue... ".format(kommune))
+        arcpy.AddMessage("\t\tRGB image for {} kommune does not exits. Vegetation mask cannot be created. Continue... ".format(kommune))
 
+    # ------------------------------------------------------ #
+    # 1.5 Create DTM
+    # ------------------------------------------------------ #
+    if arcpy.Exists(r_dtm):
+        arcpy.AddMessage("\t\tDTM for tile <<{}>> exists in database. Continue ...".format(tile_code))
+    else:
+        start_time1 = time.time()
+        if point_density >= 10:
+            spatial_resolution = 0.5 
+            tree.create_DTM(d_las, r_dtm, spatial_resolution)
+            end_time1(start_time1)
+        else: 
+            spatial_resolution = 1 
+            tree.create_DTM(d_las, r_dtm, spatial_resolution)
+            end_time1(start_time1)
+     
+    # ------------------------------------------------------ #
+    # 1.6 Create DSM
+    # ------------------------------------------------------ #
+    
+    if arcpy.Exists(r_dsm):
+        arcpy.AddMessage("\t\tDSM for tile <<{}>> exists in database. Continue ...".format(tile_code))
+    else:
+        start_time1 = time.time()
+        if veg_is_available:
+            arcpy.AddMessage("\t\tVegetation classes are available for {} kommune. \nThe classes unclassified, low-, medium-, and, high vegetation are used to create the DSM.".format(kommune))
+            class_code=["1", "3", "4", "5"]
+            return_values=["1", "3", "4", "5"]
+            tree.create_DSM(d_las, r_dsm, spatial_resolution, class_code, return_values)
+            end_time1(start_time1)
+        else:
+            arcpy.AddMessage("\t\tVegetation is not classified for {} kommune. \nThe class unclassified is used to create the DSM.".format(kommune))
+            class_code=["1"]
+            return_values=["1"]
+            tree.create_DSM(d_las, r_dsm, spatial_resolution, class_code, return_values)
+            end_time1(start_time1)
+   
+    # ------------------------------------------------------ #
+    # 1.6 Create CHM
+    # TO DO merge DSM, DTM and CHM into one step 
+    # move to before vegetation mask 
+    # add refine CHM with veg mask to vegetation mask step 
+    # ------------------------------------------------------ #         
+            
+            
+    tree.create_CHM(r_dtm, r_dsm, r_chm)
+    
     arcpy.AddMessage("\t---------------------")
+    
+    
+
     break 
 
 
