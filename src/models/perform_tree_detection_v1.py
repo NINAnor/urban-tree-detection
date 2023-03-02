@@ -3,8 +3,7 @@
 # perform_tree_detection_v1.py
 # Description: Translation of Hanssen et al. (2021) tree detection algorithm
 # from ArcMap model builder to ArcPy script - Version 1
-# Author: Zofie Cimburova, Willeke A'Campo
-# Dependencies: ArcGIS Pro 3.0, 3D analyst, image analyst, spatial analyst
+# Author: Zofie Cimburova
 # ---------------------------------------------------------------------------
 
 # ------------------------------------------------------ #
@@ -21,6 +20,52 @@
 # Import modules
 import arcpy
 from arcpy import env
+import os
+import time
+import dotenv
+from dotenv import dotenv_values
+
+# set the municipality (kommune) to be analyzed
+kommune = "bodo"
+spatial_reference = "ETRS 1989 UTM Zone 33N"
+tile = "XXX-YYY"
+
+start_time0 = time.time()
+# ------------------------------------------------------ #
+# Variables  
+# ------------------------------------------------------ #
+
+# search for .env file in USER directory 
+# user_dir = C:\\USERS\\<<firstname.lastname>>
+user_dir = os.path.join(os.path.expanduser("~"))
+dotenv_path = os.path.join(user_dir, '.env')
+
+dotenv.load_dotenv(dotenv_path)
+config = dotenv_values(dotenv_path)
+
+# set secure variables
+# source dataset path variables
+FKB_BUILDING_PATH = os.getenv('FKB_BUILDING_PATH')
+FKB_WATER_PATH = os.getenv('FKB_WATER_PATH')
+
+# project data path variables 
+DATA_PATH = os.getenv('DATA_PATH')
+raw_data_path = os.path.join(DATA_PATH, kommune, "raw")
+interim_data_path = os.path.join(DATA_PATH, kommune, "interim")
+processed_data_path = os.path.join(DATA_PATH, kommune, "processed")
+
+# specific file paths
+lidar_path = os.path.join(interim_data_path, "lidar")
+neighbourhood_path = os.path.join(interim_data_path, "neighbourhoods.gdb\\")
+output_path = os.path.join(processed_data_path,"data.gdb\\")
+
+# old variables
+#path_bydel = "neighbourhoods.gdb\\" # IF NECESSARY, CHANGE PATH TO GEODATABASE STORING NEIGHBOURHOOD POLYGONS
+#path_output = "data.gdb\\" # IF NECESSARY, CHANGE PATH TO GEODATABASE STORING OUTPUT DATA
+#v_buildings = r"R:\GeoSpatialData\Topography\Norway_FKB\Original\FKB-Bygning FGDB-format\Basisdata_03_Oslo_5972_FKB-Bygning_FGDB\Basisdata_03_Oslo_5972_FKB-Bygning_FGDB.gdb\fkb_bygning_omrade" # IF NECESSARY, CHANGE PATH TO DATASET STORING BUILDING POLYGONS
+#v_water = r"R:\GeoSpatialData\Topography\Norway_FKB\Original\FKB-Vann FGDB-format\Basisdata_0000_Norge_5973_FKB-Vann_FGDB\Basisdata_0000_Norge_5973_FKB-Vann_FGDB.gdb\fkb_vann_omrade" # IF NECESSARY, CHANGE PATH TO DATASET STORING WATER POLYGONS
+
+
 import os
 import time
 import dotenv
@@ -104,10 +149,23 @@ def join_and_copy(t_dest, join_a_dest, t_src, join_a_src, a_src, a_dest):
 env.overwriteOutput = True
 env.outputCoordinateSystem = arcpy.SpatialReference(spatial_reference)
 env.workspace = interim_data_path
+env.outputCoordinateSystem = arcpy.SpatialReference(spatial_reference)
+env.workspace = interim_data_path
 
 # ------------------------------------------------------ #
 # Inputs
 # ------------------------------------------------------ #
+
+arcpy.AddMessage("-"*100)
+arcpy.AddMessage("arcpy worksapce:\t" + env.workspace)
+arcpy.AddMessage("neighbourhood_path:\t" + neighbourhood_path + "\n")
+end_time0 = time.time()
+execution_time0 = end_time0 - start_time0
+arcpy.AddMessage("Processing time model set-up:\t {:.2f} sec".format(execution_time0))
+arcpy.AddMessage("-"*100)
+
+
+
 
 arcpy.AddMessage("-"*100)
 arcpy.AddMessage("arcpy worksapce:\t" + env.workspace)
@@ -148,7 +206,7 @@ for i in range (1, 17): # IF NECESSARY, CHANGE NUMBER OF BYDEL
     r_rgb = output_path + "data_" + bydel_code + "_002_rgb" 
     r_tgi = output_path + "data_" + bydel_code + "_003_tgi"
     v_tgi = output_path + "data_" + bydel_code + "_004_tgi"  
-    r_dem = output_path + "data_" + bydel_code + "_005_dem" 
+    r_dtm = output_path + "data_" + bydel_code + "_005_dtm" 
     r_dsm = output_path + "data_" + bydel_code + "_006_dsm"
     r_chm = output_path + "data_" + bydel_code + "_007_chm"
     r_chm_tgi = output_path + "data_" + bydel_code + "_008_chm_tgi"
@@ -245,16 +303,16 @@ for i in range (1, 17): # IF NECESSARY, CHANGE NUMBER OF BYDEL
     execution_time1 = end_time1 - start_time1
     arcpy.AddMessage("  TIME:\t {:.2f} sec".format(execution_time1))
     # ------------------------------------------------------ #
-    # 1.5 Create DEM
+    # 1.5 Create DTM
     # ------------------------------------------------------ #
     start_time1 = time.time()
-    arcpy.AddMessage("  1.5: Creating DEM...")
+    arcpy.AddMessage("  1.5: Creating DTM...")
 
-    # select DEM points (= terrain)
-    l_dem = arcpy.CreateUniqueName('dem_lyr')
+    # select DTM points (= terrain)
+    l_dtm = arcpy.CreateUniqueName('dtm_lyr')
     arcpy.MakeLasDatasetLayer_management(
         in_las_dataset=d_las, 
-        out_layer=l_dem, 
+        out_layer=l_dtm, 
         class_code="2", 
         return_values="2", 
         no_flag="INCLUDE_UNFLAGGED", 
@@ -264,11 +322,11 @@ for i in range (1, 17): # IF NECESSARY, CHANGE NUMBER OF BYDEL
         surface_constraints=""
     )
 
-    # convert to DEM raster
-    r_dem = output_path + "data_" + bydel_code + "_005_dem" 
+    # convert to DTM raster
+    r_dtm = output_path + "data_" + bydel_code + "_005_dtm" 
     arcpy.conversion.LasDatasetToRaster(
-        in_las_dataset = l_dem,
-        out_raster = r_dem,
+        in_las_dataset = l_dtm,
+        out_raster = r_dtm,
         value_field = "ELEVATION",
         interpolation_type = "BINNING AVERAGE LINEAR",
         data_type = "INT",
@@ -324,10 +382,10 @@ for i in range (1, 17): # IF NECESSARY, CHANGE NUMBER OF BYDEL
     
     r_chm = output_path + "data_" + bydel_code + "_007_chm"
     arcpy.gp.RasterCalculator_sa(
-        '"{}"-"{}"'.format(r_dsm, r_dem), 
+        '"{}"-"{}"'.format(r_dsm, r_dtm), 
         r_chm
     )
-    arcpy.Delete_management(r_dem)
+    arcpy.Delete_management(r_dtm)
 
     # ------------------------------------------------------ #
     # 1.8 Refine CHM with vegetation mask
