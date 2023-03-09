@@ -27,9 +27,17 @@ for root, dirs, files in os.walk(input_folder):
                         break
 
             if found:
-                print(f"Moving file {filename} to inside_BuildUpZone")
+                output_path = os.path.join(output_folder_1, filename)
+                if os.path.exists(output_path):
+                    print(f"File {filename} already exists in output_folder_1, skipping...")
+                    continue
                 shutil.move(os.path.join(root, filename), output_folder_1)
+                print(f"Moving file {filename} to inside_BuildUpZone")
             else:
+                output_path = os.path.join(output_folder_2, filename)
+                if os.path.exists(output_path):
+                    print(f"File {filename} already exists in output_folder_2, skipping...")
+                    continue
                 shutil.move(os.path.join(root, filename), output_folder_2)
 
 print("Moving of files finished.")

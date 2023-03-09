@@ -15,7 +15,7 @@ set kommune=baerum
 
 set source_folder="P:\152022_itree_eco_ifront_synliggjore_trars_rolle_i_okosyst\raw_data\%kommune%\lidar\laz\inside_BuildUpZone"
 set destination_folder="P:\152022_itree_eco_ifront_synliggjore_trars_rolle_i_okosyst\raw_data\%kommune%\lidar\las_inside_BuildUpZone"
-set laszip_exe="P:\15220700_gis_samordning_2022_(marea_spare_ecogaps)\Willeke\treeDetection\tools\LAStools\bin\laszip.exe"
+set laszip_exe="P:\15220700_gis_samordning_2022_(marea_spare_ecogaps)\Willeke\trekroner\treeDetection\tools\LAStools\bin\laszip.exe"
 
 rem Display source and destination folder
 echo --------------------------------------------------------------------------------------------------------------------------------------
