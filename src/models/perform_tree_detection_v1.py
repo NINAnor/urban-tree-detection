@@ -416,6 +416,7 @@ for i in range (1, 17): # IF NECESSARY, CHANGE NUMBER OF BYDEL
 
     # ------------------------------------------------------ #
     # 1.10 Refine CHM by focal maximum filter
+    # best filter size can vary locally, dependent on species
     # ------------------------------------------------------ #
     arcpy.AddMessage("  1.10: Refining CHM by focal maximum filter...")
     
@@ -430,6 +431,7 @@ for i in range (1, 17): # IF NECESSARY, CHANGE NUMBER OF BYDEL
     )
 
     # ------------------------------------------------------ #
+    # # THE WATERSHED SEGMENTATION METHOD
     # 1.11 Flip CHM
     # ------------------------------------------------------ #
     arcpy.AddMessage("  1.11: Flipping CHM...")

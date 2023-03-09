@@ -1,6 +1,7 @@
 import os
 import arcpy
 from arcpy import env
+from arcpy.sa import *
 
 def create_lasDataset(l_las_folder: str, d_las: str):
     """
@@ -84,7 +85,7 @@ def create_DTM(d_las, r_dtm, spatial_resolution):
         r_dtm (_type_): _description_
         spatial_resolution (_type_): _description_
     """    
-    arcpy.AddMessage("\t\tCreating DTM...")
+    arcpy.AddMessage("\t\tCreating DTM ({}x{}m) ...".format(spatial_resolution, spatial_resolution))
 
     # select DTM points (class 2 = ground points)
     l_dtm = arcpy.CreateUniqueName('dtm_lyr')
@@ -122,7 +123,7 @@ def create_DSM(d_las, r_dsm, spatial_resolution, class_code, return_values):
         class_code (_type_): _description_
         return_values (_type_): _description_
     """    
-    arcpy.AddMessage("\t\t\tCreating DSM...")
+    arcpy.AddMessage("\t\tCreating DSM ({}x{}m) ...".format(spatial_resolution, spatial_resolution))
 
     # select DSM points (= surface)
     l_dsm = arcpy.CreateUniqueName('dsm_lyr')
@@ -149,7 +150,7 @@ def create_DSM(d_las, r_dsm, spatial_resolution, class_code, return_values):
         sampling_value = spatial_resolution, 
         z_factor = 1
     )
-    arcpy.Delete_management(d_las)
+
 
 def create_CHM(r_dtm, r_dsm, r_chm):
     """_summary_
@@ -159,9 +160,192 @@ def create_CHM(r_dtm, r_dsm, r_chm):
         r_dsm (_type_): _description_
         r_chm (_type_): _description_
     """    
-    arcpy.AddMessage("\t\t\tCreating CHM...")
+    arcpy.AddMessage("\t\tCreating CHM...")
     arcpy.gp.RasterCalculator_sa(
         '"{}"-"{}"'.format(r_dsm, r_dtm), 
         r_chm
     )
-    arcpy.Delete_management(r_dtm)
+    
+def extract_vegMask(v_tgi, r_chm, r_chm_tgi):
+    """_summary_
+
+    Args:
+        v_tgi (_type_): _description_
+        r_chm (_type_): _description_
+        r_chm_tgi (_type_): _description_
+    """    
+    arcpy.AddMessage("\t\tRefining CHM with vegetation mask...")
+    arcpy.gp.ExtractByMask_sa(
+        r_chm, 
+        v_tgi, 
+        r_chm_tgi)
+
+def extract_minHeight(input_chm, r_chm_h, min_heigth):
+    """_summary_
+
+    Args:
+        input_chm (_type_): The path to the canopy height raster that needs to be filtered. 
+        r_chm_h (_type_): _description_
+        min_heigth (_type_): _description_
+    """    
+    arcpy.AddMessage("\t\tFiltering CHM by minimum height...")
+    arcpy.gp.ExtractByAttributes_sa(
+        input_chm, 
+        "Value >= {}".format(min_heigth), 
+        r_chm_h
+    )
+
+    
+def focal_maxFilter(r_chm_h, r_chm_smooth, radius):
+    """_summary_
+
+    Args:
+        r_chm_h (_type_): _description_
+        r_chm_smooth (_type_): _description_
+        radius (_type_): _description_
+    """    
+    arcpy.AddMessage("\t\tRefining CHM by a focal maximum filter with a {} MAP radius...".format(radius))
+    neighborhood = NbrCircle(radius, "MAP")
+    outFocalStat= FocalStatistics(
+        r_chm_h,
+        neighborhood,
+        "MAXIMUM",
+        "DATA",
+        "90" 
+    )
+    outFocalStat.save(r_chm_smooth)
+
+def watershed_segmentation(r_chm_smooth,r_chm_flip,r_flowdir,r_sinks,r_watersheds):
+
+    # flip CHM
+    def flip_CHM(r_chm_smooth):
+        arcpy.AddMessage("\t\tFlipping CHM...")
+        arcpy.gp.RasterCalculator_sa(
+            '"{}"*(-1)'.format(r_chm_smooth), 
+            r_chm_flip
+        )
+        return r_chm_flip
+    
+    # Compute flow direction
+    def comp_flowDir(r_chm_flip):
+        arcpy.AddMessage("\t\tComputing flow direction...")
+        arcpy.gp.FlowDirection_sa(
+            r_chm_flip, 
+            r_flowdir
+        )
+        arcpy.Delete_management(r_chm_flip)
+        return r_flowdir
+    
+    # Identify sinks
+    def identify_sinks(r_flowdir):
+        arcpy.AddMessage("\t\tIdentifying sinks...")
+        arcpy.gp.Sink_sa(
+            r_flowdir, 
+            r_sinks
+        )
+        return r_sinks
+    
+    # identify watersheds 
+
+    def identify_watersheds(r_flowdir, r_sinks):
+        arcpy.AddMessage("\t\tIdentifying watersheds...")
+        arcpy.gp.Watershed_sa(
+            r_flowdir,
+            r_sinks,
+            r_watersheds,
+            "Value"
+        ) 
+        arcpy.Delete_management(r_flowdir)
+        #arcpy.Delete_management(r_sinks)
+        return r_watersheds
+        
+    # call nested functions     
+
+    flip_CHM(r_chm_smooth)
+    comp_flowDir(r_chm_flip)
+    identify_sinks(r_flowdir)
+    identify_watersheds(r_flowdir, r_sinks)
+    
+    return r_watersheds 
+        
+
+def identify_treeTops(r_sinks, r_focflow, r_focflow_01, v_treetop_poly, r_chm_h, r_dsm, v_treetop_pnt):
+    
+    # Identify tree tops (I) by identifying focal flow
+    def identify_focalFlow():
+        arcpy.AddMessage("\t\tIdentifying tree tops by focal flow...")
+        arcpy.gp.FocalFlow_sa(
+            r_sinks, 
+            r_focflow,
+            "0,5"
+        )
+        #arcpy.Delete_management(r_sinks)
+        return r_focflow
+    
+    # Identify tree tops (II) by converting focal flow values from 0 to 1
+    def convert_focalFlow():
+        arcpy.AddMessage("\t\tIdentifying tree tops by converting focal flow values from 0 to 1...")
+    
+        arcpy.gp.RasterCalculator_sa(
+            'Con("{}" == 0, 1)'.format(r_focflow), 
+            r_focflow_01
+        )
+        arcpy.Delete_management(r_focflow)
+        return r_focflow_01
+    
+    # Vectorize tree tops to polygons
+    def focalFlow_toVector():
+        arcpy.AddMessage("\t\tVectorizing tree tops to polygons...")
+    
+        arcpy.RasterToPolygon_conversion(
+            in_raster = r_focflow_01,
+            out_polygon_features = v_treetop_poly, 
+            simplify = "SIMPLIFY", 
+            raster_field = "Value", 
+            create_multipart_features = "SINGLE_OUTER_PART", 
+            max_vertices_per_feature = ""
+        )
+        arcpy.Delete_management(r_focflow_01)
+        return v_treetop_poly
+
+    # Convert tree top polygons to points
+    def focalFlow_vectorToPoint():
+        arcpy.AddMessage("\t\tConverting tree top polygons to points...")
+    
+
+        arcpy.FeatureToPoint_management(
+            in_features = v_treetop_poly,
+            out_feature_class = v_treetop_pnt, 
+            point_location = "INSIDE"
+        )
+        arcpy.Delete_management(v_treetop_poly)
+
+        # Extract tree height (from CHM) and tree altitude (from DSM) to tree points   
+        arcpy.gp.ExtractMultiValuesToPoints_sa(
+            v_treetop_pnt,
+            "'{}' tree_height;'{}' tree_altit".format(r_chm_h, r_dsm),
+            "NONE"
+            )
+        return v_treetop_pnt
+    
+    identify_focalFlow()
+    convert_focalFlow()
+    focalFlow_toVector()
+    focalFlow_vectorToPoint()
+    
+    return v_treetop_pnt
+    
+def identify_treeCrowns(r_watersheds, v_treecrown_poly):
+    arcpy.AddMessage("\t\tIdentifying tree crowns by vectorizing watersheds...")
+    
+    arcpy.RasterToPolygon_conversion(
+        in_raster = r_watersheds,
+        out_polygon_features = v_treecrown_poly, 
+        simplify = "SIMPLIFY", 
+        raster_field = "Value", 
+        create_multipart_features = "SINGLE_OUTER_PART", 
+        max_vertices_per_feature = ""
+    )
+    #arcpy.Delete_management(r_watersheds)
+    
+    return v_treecrown_poly
