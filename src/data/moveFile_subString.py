@@ -1,26 +1,44 @@
 import os
 import shutil
+import dotenv
+from dotenv import dotenv_values
 
-source_dir = r'P:\152022_itree_eco_ifront_synliggjore_trars_rolle_i_okosyst\raw_data\Bodo\lidar\laz\all'
-target_dir = r'P:\152022_itree_eco_ifront_synliggjore_trars_rolle_i_okosyst\raw_data\Bodo\lidar'
+# search for .env file in USER directory 
+# user_dir = C:\\USERS\\<<firstname.lastname>>
+user_dir = os.path.join(os.path.expanduser("~"))
+dotenv_path = os.path.join(user_dir, '.env')
 
-start_num = 494
-end_num = 505
+dotenv.load_dotenv(dotenv_path)
+config = dotenv_values(dotenv_path)
 
-for filename in os.listdir(source_dir):
-    if os.path.isfile(os.path.join(source_dir, filename)):
-        for num in range(start_num, end_num+1):
-            if f"33-1-{num}" in filename:
-                target_subdir = str(num)
-                print(f"Moving file {filename} to directory {target_subdir}")
-                break
-        else:
-            print(f"No directory found for file {filename}")
-            continue
-        
-        target_path = os.path.join(target_dir, target_subdir)
-        if not os.path.exists(target_path):
-            print(f"Make directory{num}")
-            os.makedirs(target_path)
-        
-        shutil.move(os.path.join(source_dir, filename), os.path.join(target_path, filename))
+kommune="baerum"
+# project data path variables 
+DATA_PATH = os.getenv('DATA_PATH')
+RAW_DATA_PATH = os.getenv('RAW_DATA_PATH')
+source_dir = os.path.join(RAW_DATA_PATH, kommune, "lidar", "las_inside_BuildUpZone")
+target_dir = os.path.join(DATA_PATH, kommune, "interim","lidar")
+
+print(source_dir)
+print(target_dir)
+
+#"raw_data\baerum\lidar\las_inside_BuildUpZone
+
+# Loop through the file list
+for file_name in os.listdir(source_dir):
+    # Extract the substring we're interested in
+    substring = file_name.split('-')[2] + '-' + file_name.split('-')[3]
+    print(substring)
+
+    # Define the folder path using the substring
+    folder_path = os.path.join(target_dir, substring)
+    
+    # Check if the folder already exists, if not create it
+    if not os.path.exists(folder_path):
+        print(f"Make directory {substring}")
+        os.makedirs(folder_path)
+
+    # Move the file to the appropriate folder
+    print(f"copy the file '{file_name}'to the folder '{folder_path}'")
+    shutil.copy(os.path.join(source_dir, file_name), folder_path)
+    
+    #break
