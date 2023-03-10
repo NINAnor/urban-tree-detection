@@ -349,3 +349,66 @@ def identify_treeCrowns(r_watersheds, v_treecrown_poly):
     #arcpy.Delete_management(r_watersheds)
     
     return v_treecrown_poly
+
+def SelectTrees_ByStudyArea(study_area_path, tile_code, v_treetop_pnt,  v_tree_pnt, v_treecrown_poly, v_tree_poly):
+    arcpy.AddMessage("\t\tSelecting tree points within the study area...")
+    
+    l_tree_pnt = arcpy.MakeFeatureLayer_management(
+        v_treetop_pnt, 
+        "tree_pnt_lyr"
+    )
+
+    arcpy.SelectLayerByLocation_management(
+        l_tree_pnt, 
+        "INTERSECT",
+        study_area_path,
+        "",
+        "NEW_SELECTION"
+    )
+
+    arcpy.CopyFeatures_management(
+        in_features = l_tree_pnt,
+        out_feature_class = v_tree_pnt
+    )    
+
+    # Store information on neighbourhood code
+    arcpy.AddField_management(v_tree_pnt, "tile_code", "TEXT")
+    arcpy.CalculateField_management(v_tree_pnt, "bydel_code", tile_code)
+    
+    # Delete useless attributes
+    arcpy.DeleteField_management(
+        v_tree_pnt, 
+        ["Id", "gridcode", "ORIG_FID"]
+    )
+
+    arcpy.AddMessage("\t\tSelecting tree polygons within neighbourhood...")
+    
+    l_tree_poly = arcpy.MakeFeatureLayer_management(
+        v_treecrown_poly, 
+        "tree_poly_lyr"
+    )
+    
+    arcpy.SelectLayerByLocation_management(
+        l_tree_poly, 
+        "INTERSECT",
+        v_tree_pnt,
+        "",
+        "NEW_SELECTION"
+    )
+
+    arcpy.CopyFeatures_management(
+        in_features = l_tree_poly,
+        out_feature_class = v_tree_poly
+    )
+    
+    # Store information on neighbourhood code
+    arcpy.AddField_management(v_tree_poly, "tile_code", "TEXT")
+    arcpy.CalculateField_management(v_tree_poly, "tile_code", tile_code)
+
+    # Delete useless attributes
+    arcpy.DeleteField_management(
+        v_tree_poly, 
+        ["Id", "gridcode"]
+    )
+   
+    

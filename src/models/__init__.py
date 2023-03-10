@@ -77,8 +77,9 @@ processed_data_path = os.path.join(DATA_PATH, kommune, "processed")
 
 # specific file paths
 lidar_path = os.path.join(interim_data_path, "lidar")
-neighbourhood_path = os.path.join(interim_data_path, "neighbourhoods.gdb\\")
+study_area_path = os.path.join(interim_data_path, kommune + "_AdminData.gdb", "analyseomrade")
 output_path = os.path.join(processed_data_path,"data.gdb")
+
 
 #------------------------------------------------------ #
 # Workspace settings
@@ -113,9 +114,9 @@ def end_time1(start_time1):
 arcpy.AddMessage("Step 1: Detecting tree polygons and points per las tile")
 arcpy.AddMessage("-"*100)
 
-# Iterate over bydel (here adjusted for Oslo - 16 bydel numbered 01-16 with prefix 0301)
-#list_tree_pnt_names = []
-#list_tree_poly_names = []  
+# Iterate over tile (here the 5000 maplist is used for the tilecode, each las dataset contains all .las files within the tilecode)
+list_tree_pnt_names = []
+list_tree_poly_names = []  
 
 
 # List the subdirectories in the folder
@@ -126,9 +127,6 @@ arcpy.AddMessage("In {} kommune {} tiles (5000 maplist) are processed:\n".format
 arcpy.AddMessage(tile_list)
 
 for tile_code in tile_list: 
-
-    
-
 
     arcpy.AddMessage("\n\tPROCESSING TILE <<{}>>".format(tile_code))
     arcpy.AddMessage("\t---------------------".format(tile_code))
@@ -160,10 +158,11 @@ for tile_code in tile_list:
     r_focflow_01 = os.path.join(output_path, "data_" + tile_code + "_016_focflow_01_temp") # temporary file
     v_treetop_poly = os.path.join(output_path, "data_" + tile_code + "_016_treetop_poly_temp") # temporary file
     v_treetop_pnt = os.path.join(output_path, "data_" + tile_code + "_016_treetop_pnt")
+    v_tree_pnt = os.path.join(output_path, "data_" + tile_code + "_tree_pnt") # tree points in study area 
     
     # identify tree crowns 
     v_treecrown_poly = os.path.join(output_path, "data_" + tile_code + "_017_treecrown_poly") # old name v_watersheds
-    
+    v_tree_poly = os.path.join(output_path, "data_" + tile_code + "_tree_poly") # trees polygons in study area 
     
     # ------------------------------------------------------ #
     # 1.1 Create LAS Dataset
@@ -328,10 +327,20 @@ for tile_code in tile_list:
     
     # ------------------------------------------------------ #
     # 1.8 Select only tree points within the study area
+    #     Select only tree points within neighbourhood (old 1.20)
+    #     Select only tree polygons within neighbourhood (i.e., the ones that intersect with tree tops) (old 1.21)
     # ------------------------------------------------------ #
     
-    
-    
+    arcpy.AddMessage("\t1.8 Select Tree Points and Polygons that lay within the Study Area ")
+    start_time1 = time.time()
+    if arcpy.Exists(v_tree_poly):
+        arcpy.AddMessage("\t\tThe trees located in the study area are already selected, the file <<{}>> exists in database. Continue ...".format(v_tree_poly))
+        tree.SelectTrees_ByStudyArea(study_area_path, tile_code, v_treetop_pnt,  v_tree_pnt, v_treecrown_poly, v_tree_poly)
+        
+        # add trees to list 
+        list_tree_pnt_names.append(v_tree_pnt)
+        list_tree_poly_names.append(v_tree_poly)
+        
     arcpy.AddMessage("\t---------------------")
     break 
 
