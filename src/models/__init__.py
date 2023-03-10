@@ -7,16 +7,6 @@
 # Dependencies: ArcGIS Pro 3.0, 3D analyst, image analyst, spatial analyst
 # ---------------------------------------------------------------------------
 
-# ------------------------------------------------------ #
-# TO DO
-# ------------------------------------------------------ #
-# test code for Oslo (one tile) 
-# test code for Bodø 
-# init user-parameters in batch (see lakseskart PROCEDURE)
-# object-based coding instead of function-based 
-# use __init__.py
-# ------------------------------------------------------ #
-
 # Import modules
 import arcpy
 from arcpy import env
@@ -28,7 +18,7 @@ import control
 import tree
 
 # set the municipality (kommune) to be analyzed
-kommune = "oslo"
+kommune = "bodo"
 
 
 if kommune == "oslo" or "baerum" :
@@ -127,15 +117,20 @@ arcpy.AddMessage("-"*100)
 #list_tree_pnt_names = []
 #list_tree_poly_names = []  
 
+
+# List the subdirectories in the folder
+tile_list = [f.name for f in os.scandir(lidar_path) if f.is_dir()]
 n_tiles = len([f for f in os.listdir(lidar_path) if os.path.isdir(os.path.join(lidar_path, f))])
 
-arcpy.AddMessage("In {} kommune {} tiles are processed... \n".format(kommune,n_tiles))
+arcpy.AddMessage("In {} kommune {} tiles (5000 maplist) are processed:\n".format(kommune,n_tiles))
+arcpy.AddMessage(tile_list)
 
-for i in range (1, n_tiles): # IF NECESSARY, CHANGE NUMBER OF TILES
+for tile_code in tile_list: 
 
-    tile_code= "test"
+    
 
-    arcpy.AddMessage("\tPROCESSING TILE <<{}>>".format(tile_code))
+
+    arcpy.AddMessage("\n\tPROCESSING TILE <<{}>>".format(tile_code))
     arcpy.AddMessage("\t---------------------".format(tile_code))
    
     # layer paths 
@@ -326,10 +321,14 @@ for i in range (1, n_tiles): # IF NECESSARY, CHANGE NUMBER OF TILES
     arcpy.AddMessage("\t1.7 Identify Tree Crowns ")
     start_time1 = time.time()
     if arcpy.Exists(v_treecrown_poly):
-            arcpy.AddMessage("\t\tThe tree crownvector for tile <<{}>> exists in database. Continue ...".format(tile_code))
+            arcpy.AddMessage("\t\tThe tree crown vector for tile <<{}>> exists in database. Continue ...".format(tile_code))
     else: 
         tree.identify_treeCrowns(r_watersheds,v_treecrown_poly)
         end_time1(start_time1)
+    
+    # ------------------------------------------------------ #
+    # 1.8 Select only tree points within the study area
+    # ------------------------------------------------------ #
     
     
     
