@@ -3,7 +3,7 @@ import arcpy
 from arcpy import env
 from arcpy.sa import *
 
-def create_lasDataset(l_las_folder: str, d_las: str):
+def create_lasDataset(l_las_folder: str, d_las: str, study_area_path: str):
     """
     Creates a LAS dataset using the arcpy module.
 
@@ -19,7 +19,13 @@ def create_lasDataset(l_las_folder: str, d_las: str):
         out_las_dataset=d_las,
         relative_paths="RELATIVE_PATHS"
     )
-
+    arcpy.AddMessage("\t\tMasking the LAS Dataset with the study area extent...")
+    arcpy.sa.ExtractByMask(
+        in_raster=d_las,
+        in_mask_data= study_area_path, 
+        out_raster=d_las,
+    )
+    
 def create_RGB(d_las: str, r_rgb: str):
     """_summary_
 
