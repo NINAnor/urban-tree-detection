@@ -269,7 +269,7 @@ def watershed_segmentation(r_chm_smooth,r_chm_flip,r_flowdir,r_sinks,r_watershed
     return r_watersheds 
         
 
-def identify_treeTops(r_sinks, r_focflow, r_focflow_01, v_treetop_poly, r_chm_h, r_dsm, v_treetop_pnt):
+def identify_treeTops(r_sinks, r_focflow, r_focflow_01, v_treetop_poly,v_treetop_singlepoly, r_chm_h, r_dsm, v_treetop_pnt):
     
     # Identify tree tops (I) by identifying focal flow
     def identify_focalFlow():
@@ -307,18 +307,25 @@ def identify_treeTops(r_sinks, r_focflow, r_focflow_01, v_treetop_poly, r_chm_h,
         )
         arcpy.Delete_management(r_focflow_01)
         return v_treetop_poly
+      
 
     # Convert tree top polygons to points
     def focalFlow_vectorToPoint():
         arcpy.AddMessage("\t\tConverting tree top polygons to points...")
-    
-
+        
+        # Convert multipart polygons to single part polgyons 
+        # This ensures that tree top polygons can be converted to points
+        arcpy.MultipartToSinglepart_management(
+            in_features=v_treetop_poly, 
+            out_features=v_treetop_singlepoly, 
+        )
         arcpy.FeatureToPoint_management(
             in_features = v_treetop_poly,
             out_feature_class = v_treetop_pnt, 
             point_location = "INSIDE"
         )
         arcpy.Delete_management(v_treetop_poly)
+        arcpy.Delete_management(v_treetop_singlepoly)
 
         # Extract tree height (from CHM) and tree altitude (from DSM) to tree points   
         arcpy.gp.ExtractMultiValuesToPoints_sa(

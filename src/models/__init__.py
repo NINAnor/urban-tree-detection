@@ -166,6 +166,7 @@ for tile_code in tile_list:
     r_focflow = os.path.join(prefix + "_016_focflow_temp") # temporary file
     r_focflow_01 = os.path.join(prefix + "_016_focflow_01_temp") # temporary file
     v_treetop_poly = os.path.join(prefix + "_016_treetop_poly_temp") # temporary file
+    v_treetop_singlepoly = os.path.join(prefix + "_016_treetop_singlepoly_temp") # temporary file
     v_treetop_pnt = os.path.join(prefix + "_016_treetop_pnt")
     v_tree_pnt = os.path.join(output_path, "data_" + tile_code + "_tree_pnt") # tree points in study area 
     
@@ -305,7 +306,7 @@ for tile_code in tile_list:
             end_time1(start_time1)
     except Exception as e:
         # catch any exception and print error message. 
-        arcpy.AddMessage(f"ERROR: {e}. Continue...")
+        arcpy.AddMessage(f"\t\tERROR: {e}. \nContinue...")
     
     
     # ------------------------------------------------------ #
@@ -315,16 +316,19 @@ for tile_code in tile_list:
     #     Vectorize tree tops to polygons (old 1.17)
     #     Convert tree top polygons to points (old 1.18)
     # ------------------------------------------------------ #        
-            
-    arcpy.AddMessage("\t1.6 Identify Tree Tops  ")
-    start_time1 = time.time()
-    if arcpy.Exists(v_treetop_pnt):
-            arcpy.AddMessage("\t\tThe treetop vector for tile <<{}>> exists in database. Continue ...".format(tile_code))
-    else: 
-        # nested function to identify treeTops
-        tree.identify_treeTops(r_sinks, r_focflow, r_focflow_01, v_treetop_poly, r_chm_h, r_dsm, v_treetop_pnt)
-        end_time1(start_time1)
     
+    try:        
+        arcpy.AddMessage("\t1.6 Identify Tree Tops  ")
+        start_time1 = time.time()
+        if arcpy.Exists(v_treetop_pnt):
+            arcpy.AddMessage("\t\tThe treetop vector for tile <<{}>> exists in database. Continue ...".format(tile_code))
+        else: 
+            # nested function to identify treeTops
+            tree.identify_treeTops(r_sinks, r_focflow, r_focflow_01, v_treetop_poly,v_treetop_singlepoly, r_chm_h, r_dsm, v_treetop_pnt)
+            end_time1(start_time1)
+    except Exception as e:
+        # catch any exception and print error message. 
+        arcpy.AddMessage(f"\t\tERROR: {e}. \nContinue...")
     
     # ------------------------------------------------------ #
     #  1.7 IDENTIFY TREE CROWNS
