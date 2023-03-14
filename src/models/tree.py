@@ -3,7 +3,7 @@ import arcpy
 from arcpy import env
 from arcpy.sa import *
 
-def create_lasDataset(l_las_folder: str, d_las: str, study_area_path: str):
+def create_lasDataset(l_las_folder: str, d_las: str):
     """
     Creates a LAS dataset using the arcpy module.
 
@@ -19,14 +19,8 @@ def create_lasDataset(l_las_folder: str, d_las: str, study_area_path: str):
         out_las_dataset=d_las,
         relative_paths="RELATIVE_PATHS"
     )
-    arcpy.AddMessage("\t\tMasking the LAS Dataset with the study area extent...")
-    arcpy.sa.ExtractByMask(
-        in_raster=d_las,
-        in_mask_data= study_area_path, 
-        out_raster=d_las,
-    )
     
-def create_RGB(d_las: str, r_rgb: str):
+def create_RGB(d_las: str, r_rgb: str, study_area_path: str):
     """_summary_
 
     Args:
@@ -35,16 +29,24 @@ def create_RGB(d_las: str, r_rgb: str):
     """    
     arcpy.AddMessage("\t\tCreating RGB image...")
     
-    arcpy.LasDatasetToRaster_conversion(
+    r_mem = arcpy.LasDatasetToRaster_conversion(
         in_las_dataset = d_las, 
-        out_raster = r_rgb, 
+        out_raster = "",  # save in memory 
         value_field = "RGB", 
         interpolation_type = "BINNING NEAREST NATURAL_NEIGHBOR", 
         data_type = "INT", 
         sampling_type = "CELLSIZE", 
         sampling_value = "1", 
         z_factor = "1"
+    )[0]
+    
+    arcpy.AddMessage("\t\tMasking the RGB image with the study area extent...")
+    r_masked = arcpy.sa.ExtractByMask(
+        in_raster=r_mem,
+        in_mask_data= study_area_path, 
     )
+    
+    r_masked.save(r_rgb)
 
 
 def create_vegMask(r_rgb: str, r_tgi: str):
@@ -83,7 +85,7 @@ def tgi_toVector(r_tgi, v_tgi):
     )
     arcpy.Delete_management(r_tgi)
 
-def create_DTM(d_las, r_dtm, spatial_resolution):
+def create_DTM(d_las, r_dtm, spatial_resolution, study_area_path):
     """_summary_
 
     Args:
@@ -108,16 +110,24 @@ def create_DTM(d_las, r_dtm, spatial_resolution):
     )
 
     # convert to DTM raster
-    arcpy.conversion.LasDatasetToRaster(
+    r_mem = arcpy.conversion.LasDatasetToRaster(
         in_las_dataset = l_dtm,
-        out_raster = r_dtm,
+        out_raster = "", # save in memory 
         value_field = "ELEVATION",
         interpolation_type = "BINNING AVERAGE LINEAR",
         data_type = "INT",
         sampling_type = "CELLSIZE",
         sampling_value = spatial_resolution, 
         z_factor = 1
-    )
+    )[0]
+ 
+    arcpy.AddMessage("\t\tMasking the DTM with the study area extent...")
+    r_masked = arcpy.sa.ExtractByMask(
+        in_raster=r_mem,
+        in_mask_data= study_area_path, 
+    )   
+    r_masked.save(r_dtm)
+    
 
 def create_DSM(d_las, r_dsm, spatial_resolution, class_code, return_values):
     """_summary_
