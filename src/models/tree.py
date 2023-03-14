@@ -29,24 +29,26 @@ def create_RGB(d_las: str, r_rgb: str, study_area_path: str):
     """    
     arcpy.AddMessage("\t\tCreating RGB image...")
     
-    r_mem = arcpy.LasDatasetToRaster_conversion(
+    temp = os.path.join(r_rgb + "_temp")
+    arcpy.LasDatasetToRaster_conversion(
         in_las_dataset = d_las, 
-        out_raster = "",  # save in memory 
+        out_raster = temp,  
         value_field = "RGB", 
         interpolation_type = "BINNING NEAREST NATURAL_NEIGHBOR", 
         data_type = "INT", 
         sampling_type = "CELLSIZE", 
         sampling_value = "1", 
         z_factor = "1"
-    )[0]
+    )
     
     arcpy.AddMessage("\t\tMasking the RGB image with the study area extent...")
     r_masked = arcpy.sa.ExtractByMask(
-        in_raster=r_mem,
+        in_raster=r_rgb_temp,
         in_mask_data= study_area_path, 
     )
     
     r_masked.save(r_rgb)
+    arcpy.Delete_management(temp)
 
 
 def create_vegMask(r_rgb: str, r_tgi: str):
@@ -110,24 +112,26 @@ def create_DTM(d_las, r_dtm, spatial_resolution, study_area_path):
     )
 
     # convert to DTM raster
-    r_mem = arcpy.conversion.LasDatasetToRaster(
+    temp = os.path.join(r_dtm + "_temp")
+
+    arcpy.conversion.LasDatasetToRaster(
         in_las_dataset = l_dtm,
-        out_raster = "", # save in memory 
+        out_raster = temp,  
         value_field = "ELEVATION",
         interpolation_type = "BINNING AVERAGE LINEAR",
         data_type = "INT",
         sampling_type = "CELLSIZE",
         sampling_value = spatial_resolution, 
         z_factor = 1
-    )[0]
+    )
  
     arcpy.AddMessage("\t\tMasking the DTM with the study area extent...")
     r_masked = arcpy.sa.ExtractByMask(
-        in_raster=r_mem,
+        in_raster=temp,
         in_mask_data= study_area_path, 
     )   
     r_masked.save(r_dtm)
-    
+    arcpy.Delete_management(temp)
 
 def create_DSM(d_las, r_dsm, spatial_resolution, class_code, return_values):
     """_summary_

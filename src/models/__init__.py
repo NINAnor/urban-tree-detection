@@ -202,10 +202,10 @@ for tile_code in tile_list:
         # create DTM
         if point_density >= 10:
             spatial_resolution = 0.5 
-            tree.create_DTM(d_las, r_dtm, spatial_resolution)
+            tree.create_DTM(d_las, r_dtm, spatial_resolution, study_area_path)
         else: 
             spatial_resolution = 1 
-            tree.create_DTM(d_las, r_dtm, spatial_resolution)
+            tree.create_DTM(d_las, r_dtm, spatial_resolution, study_area_path)
         
         # create DSM 
         if veg_is_available:
@@ -238,7 +238,7 @@ for tile_code in tile_list:
         else:
             start_time1 = time.time()
             # create RGB-image
-            tree.create_RGB(d_las, r_rgb)
+            tree.create_RGB(d_las, r_rgb, study_area_path)
             # create vegation mask     
             tree.create_vegMask(r_rgb, r_tgi)
             # vegetation mask to Vector 
