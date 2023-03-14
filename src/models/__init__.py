@@ -78,7 +78,7 @@ processed_data_path = os.path.join(DATA_PATH, kommune, "processed")
 # specific file paths
 lidar_path = os.path.join(interim_data_path, "lidar")
 study_area_path = os.path.join(interim_data_path, kommune + "_AdminData.gdb", "analyseomrade")
-output_path = os.path.join(processed_data_path,"data.gdb")
+output_path = os.path.join(processed_data_path, kommune + "_Laser_ByTre.gdb")
 
 
 #------------------------------------------------------ #
@@ -134,34 +134,43 @@ for tile_code in tile_list:
     # layer paths 
     l_las_folder = r"lidar\{}".format(tile_code) # IF NECESSARY, CHANGE PATH TO .las FILES
     d_las = os.path.join(lidar_path, "data_" + tile_code + "_011.lasd")
+    
+    filegdb_name = "tree_segmentation_" + tile_code 
+    if arcpy.Exists(os.path.join(interim_data_path, filegdb_name + ".gdb")):
+        arcpy.AddMessage("\tFileGDB {} already exists. Continue...".format(filegdb_name))
+    else:
+        arcpy.management.CreateFileGDB(interim_data_path, filegdb_name)
+    
+    prefix = os.path.join(interim_data_path, filegdb_name + ".gdb", "tile_" + tile_code)
+    
     # canopy height model
-    r_dtm = os.path.join(output_path, "data_" + tile_code + "_012_dtm") 
-    r_dsm = os.path.join(output_path, "data_" + tile_code + "_012_dsm") 
-    r_chm = os.path.join(output_path, "data_" + tile_code + "_012_chm") 
+    r_dtm = os.path.join(prefix + "_012_dtm") 
+    r_dsm = os.path.join(prefix + "_012_dsm") 
+    r_chm = os.path.join(prefix + "_012_chm") 
     # vegetation mask 
-    r_rgb = os.path.join(output_path, "data_" + tile_code + "_013_rgb_temp") # temporary file
-    r_tgi = os.path.join(output_path, "data_" + tile_code + "_013_tgi_temp") # temporary file
-    v_tgi = os.path.join(output_path, "v_" + tile_code + "_013_tgi")
+    r_rgb = os.path.join(prefix + "_013_rgb_temp") # temporary file
+    r_tgi = os.path.join(prefix + "_013_tgi_temp") # temporary file
+    v_tgi = os.path.join(prefix + "_013_tgi")
     # smoothed vegetation mask 
-    r_chm_tgi = os.path.join(output_path, "data_" + tile_code + "_014_chm_tgi_temp") # temporary file (input_chm)
-    r_chm_h = os.path.join(output_path, "data_" + tile_code + "_014_chm_h") # canopy heigth (tree height)
-    r_chm_smooth = os.path.join(output_path,"data_" + tile_code + "_014_chm_smooth") # canopy smooth (tree segmenatation)
+    r_chm_tgi = os.path.join(prefix + "_014_chm_tgi_temp") # temporary file (input_chm)
+    r_chm_h = os.path.join(prefix + "_014_chm_h") # canopy heigth (tree height)
+    r_chm_smooth = os.path.join(prefix + "_014_chm_smooth") # canopy smooth (tree segmenatation)
     
     # watershed segmentation
-    r_chm_flip = os.path.join(output_path, "data_" + tile_code + "_015_chm_flip_temp") # temporary file 
-    r_flowdir = os.path.join(output_path, "data_" + tile_code + "_015_flowdir_temp") # temporary file 
-    r_sinks = os.path.join(output_path, "data_" + tile_code + "_015_sinks") 
-    r_watersheds = os.path.join(output_path,"data_" + tile_code + "_015_watersheds")
+    r_chm_flip = os.path.join(prefix + "_015_chm_flip_temp") # temporary file 
+    r_flowdir = os.path.join(prefix + "_015_flowdir_temp") # temporary file 
+    r_sinks = os.path.join(prefix + "_015_sinks") 
+    r_watersheds = os.path.join(prefix + "_015_watersheds")
     
     # identify tree tops 
-    r_focflow = os.path.join(output_path, "data_" + tile_code + "_016_focflow_temp") # temporary file
-    r_focflow_01 = os.path.join(output_path, "data_" + tile_code + "_016_focflow_01_temp") # temporary file
-    v_treetop_poly = os.path.join(output_path, "data_" + tile_code + "_016_treetop_poly_temp") # temporary file
-    v_treetop_pnt = os.path.join(output_path, "data_" + tile_code + "_016_treetop_pnt")
+    r_focflow = os.path.join(prefix + "_016_focflow_temp") # temporary file
+    r_focflow_01 = os.path.join(prefix + "_016_focflow_01_temp") # temporary file
+    v_treetop_poly = os.path.join(prefix + "_016_treetop_poly_temp") # temporary file
+    v_treetop_pnt = os.path.join(prefix + "_016_treetop_pnt")
     v_tree_pnt = os.path.join(output_path, "data_" + tile_code + "_tree_pnt") # tree points in study area 
     
     # identify tree crowns 
-    v_treecrown_poly = os.path.join(output_path, "data_" + tile_code + "_017_treecrown_poly") # old name v_watersheds
+    v_treecrown_poly = os.path.join(prefix + "_017_treecrown_poly") # old name v_watersheds
     v_tree_poly = os.path.join(output_path, "data_" + tile_code + "_tree_poly") # trees polygons in study area 
     
     # ------------------------------------------------------ #
@@ -284,14 +293,19 @@ for tile_code in tile_list:
     #     Identify sinks (old 1.13)
     #     Identify watersheds (old 1.14)
     # ------------------------------------------------------ #
-    arcpy.AddMessage("\t1.5 The Watershed Segmentation Method")
-    start_time1 = time.time()
-    if arcpy.Exists(r_watersheds):
+    
+    try:
+        arcpy.AddMessage("\t1.5 The Watershed Segmentation Method")
+        start_time1 = time.time()
+        if arcpy.Exists(r_watersheds):
             arcpy.AddMessage("\t\t The watershed raster for tile <<{}>> exists in database. Continue ...".format(tile_code))
-    else: 
-        # nested function for watershed segmentation method
-        tree.watershed_segmentation(r_chm_smooth,r_chm_flip,r_flowdir,r_sinks,r_watersheds)
-        end_time1(start_time1)
+        else: 
+            # nested function for watershed segmentation method
+            tree.watershed_segmentation(r_chm_smooth,r_chm_flip,r_flowdir,r_sinks,r_watersheds)
+            end_time1(start_time1)
+    except Exception as e:
+        # catch any exception and print error message. 
+        arcpy.AddMessage(f"ERROR: {e}. Continue...")
     
     
     # ------------------------------------------------------ #
@@ -335,16 +349,18 @@ for tile_code in tile_list:
     start_time1 = time.time()
     if arcpy.Exists(v_tree_poly):
         arcpy.AddMessage("\t\tThe trees located in the study area are already selected, the file <<{}>> exists in database. Continue ...".format(v_tree_poly))
+    else:
         tree.SelectTrees_ByStudyArea(study_area_path, tile_code, v_treetop_pnt,  v_tree_pnt, v_treecrown_poly, v_tree_poly)
         
         # add trees to list 
         list_tree_pnt_names.append(v_tree_pnt)
         list_tree_poly_names.append(v_tree_poly)
+        end_time1(start_time1)
         
     arcpy.AddMessage("\t---------------------")
-    break 
+    #break 
 
 
 end_time0 = time.time()
-execution_time0 = end_time0 - start_time0
-arcpy.AddMessage("TOTAL TIME:\t {:.2f} sec".format(execution_time0))
+execution_time0 = (end_time0 - start_time0)/60
+arcpy.AddMessage("TOTAL TIME:\t {:.2f} min".format(execution_time0))
