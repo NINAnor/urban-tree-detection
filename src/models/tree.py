@@ -3,6 +3,10 @@ import arcpy
 from arcpy import env
 from arcpy.sa import *
 
+# ------------------------------------------------------ #
+# 1.1 Create LAS Dataset
+# ------------------------------------------------------ #
+
 def create_lasDataset(l_las_folder: str, d_las: str):
     """
     Creates a LAS dataset using the arcpy module.
@@ -19,73 +23,10 @@ def create_lasDataset(l_las_folder: str, d_las: str):
         out_las_dataset=d_las,
         relative_paths="RELATIVE_PATHS"
     )
-    
-def create_RGB(d_las: str, r_rgb: str, study_area_path: str):
-    """_summary_
 
-    Args:
-        d_las (str): The path to the LAS dataset. 
-        r_rgb (str): The output path to the RGB raster.  
-    """    
-    arcpy.AddMessage("\t\tCreating RGB image...")
-    
-    temp = os.path.join(r_rgb + "_temp")
-    arcpy.LasDatasetToRaster_conversion(
-        in_las_dataset = d_las, 
-        out_raster = temp,  
-        value_field = "RGB", 
-        interpolation_type = "BINNING NEAREST NATURAL_NEIGHBOR", 
-        data_type = "INT", 
-        sampling_type = "CELLSIZE", 
-        sampling_value = "1", 
-        z_factor = "1"
-    )
-    
-    arcpy.AddMessage("\t\tMasking the RGB image with the study area extent...")
-    r_masked = arcpy.sa.ExtractByMask(
-        in_raster=r_rgb_temp,
-        in_mask_data= study_area_path, 
-    )
-    
-    r_masked.save(r_rgb)
-    arcpy.Delete_management(temp)
-
-
-def create_vegMask(r_rgb: str, r_tgi: str):
-    """_summary_
-
-    Args:
-        r_rgb (str): The path to the RGB raster.
-        r_tgi (str): The output path to TGI vegetation mask raster. 
-    """    
-    arcpy.AddMessage("\t\tCreating vegetation mask...")
-
-    band_1 = arcpy.sa.Raster(r_rgb + "\\Band_1")
-    band_2 = arcpy.sa.Raster(r_rgb + "\\Band_2")
-    band_3 = arcpy.sa.Raster(r_rgb + "\\Band_3")
-
-    output = arcpy.sa.Con(((band_2 - (0.39 * band_1) - (0.61 * band_3)) >= 0), 1)
-    output.save(os.path.join(env.workspace, r_tgi))
-    arcpy.Delete_management(r_rgb)
-
-def tgi_toVector(r_tgi, v_tgi):
-    """_summary_
-
-    Args:
-        r_tgi (_type_): _description_
-        v_tgi (_type_): _description_
-    """    
-    arcpy.AddMessage("\t\tVectorizing vegetation mask...")
-    
-    arcpy.RasterToPolygon_conversion(
-        in_raster = r_tgi,
-        out_polygon_features = v_tgi, 
-        simplify = "SIMPLIFY", 
-        raster_field = "Value", 
-        create_multipart_features = "SINGLE_OUTER_PART", 
-        max_vertices_per_feature = ""
-    )
-    arcpy.Delete_management(r_tgi)
+# ------------------------------------------------------ #
+# 1.2 CANOPY HEIGTH MODEL
+# ------------------------------------------------------ #
 
 def create_DTM(d_las, r_dtm, spatial_resolution, study_area_path):
     """_summary_
@@ -133,7 +74,7 @@ def create_DTM(d_las, r_dtm, spatial_resolution, study_area_path):
     r_masked.save(r_dtm)
     arcpy.Delete_management(temp)
 
-def create_DSM(d_las, r_dsm, spatial_resolution, class_code, return_values):
+def create_DSM(d_las, r_dsm, spatial_resolution, class_code, return_values, study_area_path):
     """_summary_
 
     Args:
@@ -160,9 +101,12 @@ def create_DSM(d_las, r_dsm, spatial_resolution, class_code, return_values):
     )
 
     # convert to DSM raster
+    # convert to DTM raster
+    temp = os.path.join(r_dsm + "_temp")
+    
     arcpy.conversion.LasDatasetToRaster(
         in_las_dataset = l_dsm,
-        out_raster = r_dsm,
+        out_raster = temp,
         value_field = "ELEVATION",
         interpolation_type = "BINNING MAXIMUM LINEAR",
         data_type = "INT",
@@ -171,6 +115,13 @@ def create_DSM(d_las, r_dsm, spatial_resolution, class_code, return_values):
         z_factor = 1
     )
 
+    arcpy.AddMessage("\t\tMasking the DSM with the study area extent...")
+    r_masked = arcpy.sa.ExtractByMask(
+        in_raster=temp,
+        in_mask_data= study_area_path, 
+    )   
+    r_masked.save(r_dsm)
+    arcpy.Delete_management(temp)
 
 def create_CHM(r_dtm, r_dsm, r_chm):
     """_summary_
@@ -186,6 +137,82 @@ def create_CHM(r_dtm, r_dsm, r_chm):
         r_chm
     )
     
+
+# ------------------------------------------------------ #
+# 1.3 VEGETATION MASK
+# ------------------------------------------------------ #
+   
+def create_RGB(d_las: str, r_rgb: str, study_area_path: str):
+    """_summary_
+
+    Args:
+        d_las (str): The path to the LAS dataset. 
+        r_rgb (str): The output path to the RGB raster.  
+    """    
+    arcpy.AddMessage("\t\tCreating RGB image...")
+    
+    temp = os.path.join(r_rgb + "_temp")
+    arcpy.LasDatasetToRaster_conversion(
+        in_las_dataset = d_las, 
+        out_raster = temp,  
+        value_field = "RGB", 
+        interpolation_type = "BINNING NEAREST NATURAL_NEIGHBOR", 
+        data_type = "INT", 
+        sampling_type = "CELLSIZE", 
+        sampling_value = "1", 
+        z_factor = "1"
+    )
+    
+    arcpy.AddMessage("\t\tMasking the RGB image with the study area extent...")
+    r_masked = arcpy.sa.ExtractByMask(
+        in_raster=temp,
+        in_mask_data= study_area_path, 
+    )
+    
+    r_masked.save(r_rgb)
+    arcpy.Delete_management(temp)
+
+
+def create_vegMask(r_rgb: str, r_tgi: str):
+    """_summary_
+
+    Args:
+        r_rgb (str): The path to the RGB raster.
+        r_tgi (str): The output path to TGI vegetation mask raster. 
+    """    
+    arcpy.AddMessage("\t\tCreating vegetation mask...")
+
+    band_1 = arcpy.sa.Raster(r_rgb + "\\Band_1")
+    band_2 = arcpy.sa.Raster(r_rgb + "\\Band_2")
+    band_3 = arcpy.sa.Raster(r_rgb + "\\Band_3")
+
+    output = arcpy.sa.Con(((band_2 - (0.39 * band_1) - (0.61 * band_3)) >= 0), 1)
+    output.save(os.path.join(env.workspace, r_tgi))
+    arcpy.Delete_management(r_rgb)
+
+def tgi_toVector(r_tgi, v_tgi):
+    """_summary_
+
+    Args:
+        r_tgi (_type_): _description_
+        v_tgi (_type_): _description_
+    """    
+    arcpy.AddMessage("\t\tVectorizing vegetation mask...")
+    
+    arcpy.RasterToPolygon_conversion(
+        in_raster = r_tgi,
+        out_polygon_features = v_tgi, 
+        simplify = "SIMPLIFY", 
+        raster_field = "Value", 
+        create_multipart_features = "SINGLE_OUTER_PART", 
+        max_vertices_per_feature = ""
+    )
+    arcpy.Delete_management(r_tgi)
+
+# ------------------------------------------------------ #
+# 1.4 SMOOTHING AND FILTERING CANOPY HEIGHT MODEL
+# ------------------------------------------------------ #
+
 def extract_vegMask(v_tgi, r_chm, r_chm_tgi):
     """_summary_
 
@@ -234,6 +261,11 @@ def focal_maxFilter(r_chm_h, r_chm_smooth, radius):
         "90" 
     )
     outFocalStat.save(r_chm_smooth)
+
+
+# ------------------------------------------------------ #
+# 1.5 THE WATERSHED SEGMENTATION METHOD
+# ------------------------------------------------------ #
 
 def watershed_segmentation(r_chm_smooth,r_chm_flip,r_flowdir,r_sinks,r_watersheds):
 
@@ -288,6 +320,9 @@ def watershed_segmentation(r_chm_smooth,r_chm_flip,r_flowdir,r_sinks,r_watershed
     
     return r_watersheds 
         
+# ------------------------------------------------------ #
+# 1.6 IDENTIFY TREE TOPS 
+# ------------------------------------------------------ #
 
 def identify_treeTops(r_sinks, r_focflow, r_focflow_01, v_treetop_poly,v_treetop_singlepoly, r_chm_h, r_dsm, v_treetop_pnt):
     
@@ -361,7 +396,11 @@ def identify_treeTops(r_sinks, r_focflow, r_focflow_01, v_treetop_poly,v_treetop
     focalFlow_vectorToPoint()
     
     return v_treetop_pnt
-    
+
+# ------------------------------------------------------ #
+#  1.7 IDENTIFY TREE CROWNS
+# ------------------------------------------------------ #
+
 def identify_treeCrowns(r_watersheds, v_treecrown_poly):
     arcpy.AddMessage("\t\tIdentifying tree crowns by vectorizing watersheds...")
     
@@ -376,6 +415,12 @@ def identify_treeCrowns(r_watersheds, v_treecrown_poly):
     #arcpy.Delete_management(r_watersheds)
     
     return v_treecrown_poly
+
+# ------------------------------------------------------ #
+# 1.8 Select only tree points within the study area
+# TO DO: NOT NECESSARY already selected by study area by using Extract by Mak 
+# Add attributes related to bykrest/bedel in "cal attr. "
+# ------------------------------------------------------ #
 
 def SelectTrees_ByStudyArea(study_area_path, tile_code, v_treetop_pnt,  v_tree_pnt, v_treecrown_poly, v_tree_poly):
     arcpy.AddMessage("\t\tSelecting tree points within the study area...")

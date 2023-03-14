@@ -118,7 +118,6 @@ arcpy.AddMessage("-"*100)
 list_tree_pnt_names = []
 list_tree_poly_names = []  
 
-
 # List the subdirectories in the folder
 tile_list = [f.name for f in os.scandir(lidar_path) if f.is_dir()]
 n_tiles = len([f for f in os.listdir(lidar_path) if os.path.isdir(os.path.join(lidar_path, f))])
@@ -133,7 +132,7 @@ for tile_code in tile_list:
    
     # layer paths 
     l_las_folder = r"lidar\{}".format(tile_code) # IF NECESSARY, CHANGE PATH TO .las FILES
-    d_las = os.path.join(lidar_path, "data_" + tile_code + "_011.lasd")
+    d_las = os.path.join(lidar_path, "tile_" + tile_code + ".lasd")
     
     filegdb_name = "tree_segmentation_" + tile_code 
     if arcpy.Exists(os.path.join(interim_data_path, filegdb_name + ".gdb")):
@@ -212,12 +211,12 @@ for tile_code in tile_list:
             arcpy.AddMessage("\t\tLiDAR point clouds are classified for vegetation in {} kommune. \n\t\tThe classes unclassified (1), low- (3), medium- (4), and, high (5) vegetation are used to create the DSM.".format(kommune))
             class_code=["1", "3", "4", "5"]
             return_values=["1", "3", "4", "5"]
-            tree.create_DSM(d_las, r_dsm, spatial_resolution, class_code, return_values)
+            tree.create_DSM(d_las, r_dsm, spatial_resolution, class_code, return_values, study_area_path)
         else:
             arcpy.AddMessage("\t\tLiDAR point clouds are not classified for vegetation in {} kommune. \n\t\tSolely the class unclassified (1) is used to create the DSM.".format(kommune))
             class_code=["1"]
             return_values=["1"]
-            tree.create_DSM(d_las, r_dsm, spatial_resolution, class_code, return_values)
+            tree.create_DSM(d_las, r_dsm, spatial_resolution, class_code, return_values, study_area_path)
             
         # create CHM 
         tree.create_CHM(r_dtm, r_dsm, r_chm)
@@ -349,17 +348,37 @@ for tile_code in tile_list:
     #     Select only tree polygons within neighbourhood (i.e., the ones that intersect with tree tops) (old 1.21)
     # ------------------------------------------------------ #
     
-    arcpy.AddMessage("\t1.8 Select Tree Points and Polygons that lay within the Study Area ")
+    #arcpy.AddMessage("\t1.8 Select Tree Points and Polygons that lay within the Study Area ")
+    #start_time1 = time.time()
+    #if arcpy.Exists(v_tree_poly):
+        #arcpy.AddMessage("\t\tThe trees located in the study area are already selected for tile <<{}>>. Continue ...".format(tile))
+    #else:
+        #tree.SelectTrees_ByStudyArea(study_area_path, tile_code, v_treetop_pnt,  v_tree_pnt, v_treecrown_poly, v_tree_poly)
+        
+        # add trees to list 
+        #list_tree_pnt_names.append(v_tree_pnt)
+        #list_tree_poly_names.append(v_tree_poly)
+        #end_time1(start_time1)
+        
+    arcpy.AddMessage(f"\t1.8 Copy the tree top and crown layers for tile <<{tile}>> to the database {kommune}_Laser_ByTre.gdb.")
     start_time1 = time.time()
     if arcpy.Exists(v_tree_poly):
-        arcpy.AddMessage("\t\tThe trees located in the study area are already selected for tile <<{}>>. Continue ...".format(tile))
+        arcpy.AddMessage(f"\t\tThe layers for <<{tile}>> already exist in {kommune}_Laser_ByTre.gdb. Continue ...")
     else:
-        tree.SelectTrees_ByStudyArea(study_area_path, tile_code, v_treetop_pnt,  v_tree_pnt, v_treecrown_poly, v_tree_poly)
+        arcpy.CopyFeatures_management(
+        in_features = v_treetop_pnt,
+        out_feature_class = v_tree_pnt
+        )
+        
+        arcpy.CopyFeatures_management(
+        in_features = v_treecrown_poly,
+        out_feature_class = v_tree_poly
+        )
         
         # add trees to list 
         list_tree_pnt_names.append(v_tree_pnt)
         list_tree_poly_names.append(v_tree_poly)
-        end_time1(start_time1)
+        end_time1(start_time1)     
         
     arcpy.AddMessage("\t---------------------")
     #break 
