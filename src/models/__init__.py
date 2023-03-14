@@ -352,7 +352,7 @@ for tile_code in tile_list:
     arcpy.AddMessage("\t1.8 Select Tree Points and Polygons that lay within the Study Area ")
     start_time1 = time.time()
     if arcpy.Exists(v_tree_poly):
-        arcpy.AddMessage("\t\tThe trees located in the study area are already selected, the file <<{}>> exists in database. Continue ...".format(v_tree_poly))
+        arcpy.AddMessage("\t\tThe trees located in the study area are already selected for tile <<{}>>. Continue ...".format(tile))
     else:
         tree.SelectTrees_ByStudyArea(study_area_path, tile_code, v_treetop_pnt,  v_tree_pnt, v_treecrown_poly, v_tree_poly)
         

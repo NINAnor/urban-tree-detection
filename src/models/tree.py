@@ -317,7 +317,7 @@ def identify_treeTops(r_sinks, r_focflow, r_focflow_01, v_treetop_poly,v_treetop
         # This ensures that tree top polygons can be converted to points
         arcpy.MultipartToSinglepart_management(
             in_features=v_treetop_poly, 
-            out_features=v_treetop_singlepoly, 
+            out_feature_class=v_treetop_singlepoly, 
         )
         arcpy.FeatureToPoint_management(
             in_features = v_treetop_poly,
