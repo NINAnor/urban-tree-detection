@@ -24,7 +24,7 @@ projection = utm32[1]
 
 for file in files_list:
     arcpy.AddMessage("reproject <" + file + "> to " + utm32[0])
-    #arcpy.management.DefineProjection(
-        #file, projection)
+    arcpy.management.DefineProjection(
+        file, projection)
     
 arcpy.AddMessage("Reprojection is finished.")
