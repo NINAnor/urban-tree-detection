@@ -28,13 +28,14 @@ for file_name in os.listdir(source_dir):
     # Extract the substring we're interested in
     substring = file_name.split('-')[2] + '-' + file_name.split('-')[3]
     print(substring)
+    f_substring = substring[:3] + '_' + substring[4:]
 
     # Define the folder path using the substring
-    folder_path = os.path.join(target_dir, substring)
+    folder_path = os.path.join(target_dir, f_substring)
     
     # Check if the folder already exists, if not create it
     if not os.path.exists(folder_path):
-        print(f"Make directory {substring}")
+        print(f"Make directory {f_substring}")
         os.makedirs(folder_path)
 
     # Move the file to the appropriate folder
