@@ -69,7 +69,10 @@ config = dotenv_values(dotenv_path)
 # source dataset path variables
 FKB_BUILDING_PATH = os.getenv('FKB_BUILDING_PATH')
 FKB_WATER_PATH = os.getenv('FKB_WATER_PATH')
+#FKB_WATER_PATH = r"R:\\GeoSpatialData\\Topography\\Norway_FKB\\Original\\FKB-Vann FGDB-format\\Basisdata_0000_Norge_5973_FKB-Vann_FGDB.gdb"
+
 FKB_WATER_PATH = os.path.join(FKB_WATER_PATH, "fkb_vann_omrade")
+
 
 # project data path variables 
 DATA_PATH = os.getenv('DATA_PATH')
@@ -424,11 +427,11 @@ else:
     v_treecrown_result = os.path.join(output_path, "treecrown_poly")
     
     if arcpy.Exists(v_treetop_result) and arcpy.Exists(v_treecrown_result):
-        arcpy.AddMessage(f"\t\tThe treetops and treecrowns are already masked for false trees within building and water areas. Continue ...")
+        arcpy.AddMessage(f"\tThe treetops and treecrowns are already masked for false trees within building and water areas. Continue ...")
     else:
         
         # mask tree tops 
-        arcpy.AddMessage(f"\t\tThe tree tops are masked for false trees within building and water areas...")
+        arcpy.AddMessage(f"\tThe tree tops are masked for false trees within building and water areas...")
         selected_trees = os.path.join(output_path, "treetop_pnt")
         
         # TODO ADD IF EXISTS to vsea and vbuilding 
@@ -438,7 +441,7 @@ else:
         
         
         #mask tree crowns
-        arcpy.AddMessage(f"\t\tThe tree crowns are masked for false trees within building and water areas...")
+        arcpy.AddMessage(f"\tThe tree crowns are masked for false trees within building and water areas...")
 
         selected_trees = os.path.join(output_path, "treecrown_poly")
         v_treecrown_result = selectArea.mask_tree(v_tree_poly_merge, v_building,v_sea,selected_trees)
@@ -469,3 +472,5 @@ else:
 end_time0 = time.time()
 execution_time0 = (end_time0 - start_time0)/60
 arcpy.AddMessage("TOTAL TIME:\t {:.2f} min".format(execution_time0))
+
+# TODO clean crown and points by size delete if < and >.. 

@@ -16,19 +16,30 @@ def join_and_copy(t_dest, join_a_dest, t_src, join_a_src, a_src, a_dest):
      
     # Join
     arcpy.AddJoin_management(l_dest, join_a_dest, t_src, join_a_src)
-     
+    
     # Copy attributes   
-    i = 0
-    for i in a_src: #a
+    for src_field, dest_field in zip(a_src, a_dest):
         arcpy.AddMessage(
-            "Copying values from " + name_src +  "." + a_src[i] + " to " + name_dest + "." + a_dest[i]
+            "\tCopying values from " + name_src +  "." + src_field + " to " + name_dest + "." + dest_field
         )
         arcpy.CalculateField_management(
             l_dest, 
-            name_dest + "." + a_dest[i], 
-            "[" + name_src + "." + a_src[i] + "]"
+            name_dest + "." + dest_field, 
+            "!" + name_src + "." + src_field + "!"
         )
-        i = i+1  
+        
+    # Copy attributes   
+    #i = 0
+    #for i in a_src: #a
+        #arcpy.AddMessage(
+        #    "Copying values from " + name_src +  "." + a_src[i] + " to " + name_dest + "." + a_dest[i]
+        #)
+        #arcpy.CalculateField_management(
+        #    l_dest, 
+        #    name_dest + "." + a_dest[i], 
+        #    "[" + name_src + "." + a_src[i] + "]"
+        #)
+        #i = i+1  
 
 # ------------------------------------------------------ #
 # Add attributes related to bykrest/bedel in "cal attr. "
@@ -53,7 +64,7 @@ def attr_lidarTile(layer, tile_code):
 
 # Assign a unique ID to each tree polygon
 def attr_crownID(v_treecrown_result):
-    arcpy.AddMessage(f"\t\tAdding the attribute <<crown_id>> using the unique ObjectID number... ")
+    arcpy.AddMessage(f"\tAdding the attribute <<crown_id>> using the unique ObjectID number... ")
 
     arcpy.AddField_management(v_treecrown_result, "crown_id", "LONG")
     
@@ -66,7 +77,7 @@ def attr_crownID(v_treecrown_result):
 # Compute crown diameter for each tree polygon using Minimum Bounding Geometry
 def attr_crownArea(v_treecrown_result, output_path):
 
-    arcpy.AddMessage(f"\t\tComputing the crown diameter by using the Minimum Bounding Geometry... ")
+    arcpy.AddMessage(f"\tComputing the crown diameter by using the Minimum Bounding Geometry... ")
     v_mbg = os.path.join(output_path, "mbg_temp")
     arcpy.MinimumBoundingGeometry_management(
         v_treecrown_result,
@@ -77,22 +88,45 @@ def attr_crownArea(v_treecrown_result, output_path):
         "MBG_FIELDS"
     )
     
-    arcpy.AddMessage(f"\t\tAdding the attribute <<crown_diam>>... ")
+    arcpy.AddMessage(f"\tAdding the attribute <<crown_diam>>... ")
     arcpy.AddField_management(v_treecrown_result, "crown_diam", "FLOAT")
-    join_and_copy(v_treecrown_result, "crown_id", v_mbg, "crown_id", ["MBG_Diameter"], ["crown_diam"])
+    join_and_copy(t_dest=v_treecrown_result,
+                  join_a_dest= "crown_id", 
+                  t_src= v_mbg, 
+                  join_a_src= "crown_id", 
+                  a_src=["MBG_Diameter"],
+                  a_dest=["crown_diam"]
+                  )
     arcpy.Delete_management(v_mbg)
 
     # Compute crown area 
-    arcpy.AddMessage(f"\t\tComputing the crown area by using the polygon shape area... ")
-    arcpy.AddMessage(f"\t\tAdding the attribute <<crown_area>>... ")
+    arcpy.AddMessage(f"\tComputing the crown area by using the polygon shape area... ")
+    arcpy.AddMessage(f"\tAdding the attribute <<crown_area>>... ")
+    
+    # Get the linear units of the feature layer's spatial reference
+    linear_units = arcpy.Describe(v_treecrown_result).spatialReference.linearUnitName
+
+    # Calculate the area of each feature based on its geometry and write the result to the crown_area field
+    if linear_units == "Meter":
+        arcpy.AddMessage("\tThe linear unit to calculate the area is Meter")
+        expression_area = "float(!SHAPE.area@squaremeters!)"
+        expression_perimeter = "float(!SHAPE.length@meters!)"
+    else:
+        conversion_factor = arcpy.Describe(v_treecrown_result).spatialReference.metersPerUnit
+        expression_area = "float(!SHAPE.area@squaremeters!) * {}".format(conversion_factor)
+        expression_perimeter = "float(!SHAPE.length@meters!) * {}".format(conversion_factor)
+
+
+
+    
     arcpy.AddField_management(v_treecrown_result, "crown_area", "FLOAT")
-    arcpy.CalculateField_management(v_treecrown_result, "crown_area", '[Shape_Area]')
+    arcpy.CalculateField_management(v_treecrown_result, "crown_area", expression_area)
 
     # Compute crown perimeter
-    arcpy.AddMessage(f"\t\tComputing the crown perimeter by using the shape length... ")
-    arcpy.AddMessage(f"\t\tAdding the attribute <<crown_peri>>... ")
+    arcpy.AddMessage(f"\tComputing the crown perimeter by using the shape length... ")
+    arcpy.AddMessage(f"\tAdding the attribute <<crown_peri>>... ")
     arcpy.AddField_management(v_treecrown_result, "crown_peri", "FLOAT")
-    arcpy.CalculateField_management(v_treecrown_result, "crown_peri", '[Shape_Length]')
+    arcpy.CalculateField_management(v_treecrown_result, "crown_peri", expression_perimeter)
 
 
 
@@ -101,7 +135,7 @@ def polygonAttr_toPoint(v_treetop_result, v_treecrown_result, output_path):
     
     
     # temporary ID for tree points to avoid issues with join_and_copy()
-    arcpy.AddMessage(f"\t\tAdding a temporary treetop id using ObjectID... ")
+    arcpy.AddMessage(f"\tAdding a temporary treetop id using ObjectID... ")
 
     arcpy.AddField_management(v_treetop_result, "tmp_id", "LONG") 
     
@@ -113,7 +147,7 @@ def polygonAttr_toPoint(v_treetop_result, v_treecrown_result, output_path):
     
     #arcpy.CalculateField_management(v_treetop_result, "tmp_id", '[OBJECTID]')
 
-    arcpy.AddMessage(f"\t\tJoining the tree crown attributes: crown_id, crown_diam, crown_area, crown_peri to the treetop points... ")
+    arcpy.AddMessage(f"\tJoining the tree crown attributes: crown_id, crown_diam, crown_area, crown_peri to the treetop points... ")
     v_join = os.path.join(output_path, "join_tmp")
     arcpy.SpatialJoin_analysis(
         v_treetop_result,
@@ -156,7 +190,7 @@ def polygonAttr_toPoint(v_treetop_result, v_treecrown_result, output_path):
 # Copy tree_heigh, tree_altit from tree points to tree polygons
 def pointAttr_toPolygon(v_treecrown_result,v_treetop_result):
     
-    arcpy.AddMessage(f"\t\tJoining the tree top attributes: tree_height and tree_altit to the treecrown polygons... ")
+    arcpy.AddMessage(f"\tJoining the tree top attributes: tree_height and tree_altit to the treecrown polygons... ")
     arcpy.AddField_management(v_treecrown_result, "tree_height", "SHORT")
     arcpy.AddField_management(v_treecrown_result, "tree_altit", "LONG")
 
@@ -177,13 +211,13 @@ def attr_crownVolume(layer):
     # Calculate tree volume
     
     formula = str("tree volume =(1/3)π * (crown diameter/2)^2 * tree height")
-    arcpy.AddMessage(f"\t\tComputing the crown volume by using the formula: \n\t\t{formula}")
+    arcpy.AddMessage(f"\tComputing the crown volume by using the formula: \n\t{formula}")
     
     arcpy.AddField_management(layer, "tree_volum", "FLOAT")
     arcpy.CalculateField_management(
     in_table=layer,
     field="tree_volum", 
-    expression="(1.0/3.0) * math.pi * ( !crown_diam! /2.0 ) * ( !crown_diam! /2.0) * float(!tree_heigh!)",
+    expression="(1.0/3.0) * math.pi * ( !crown_diam! /2.0 ) * ( !crown_diam! /2.0) * float(!tree_height!)",
     expression_type="PYTHON_9.3", 
     code_block=""
 )
