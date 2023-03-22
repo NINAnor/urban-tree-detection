@@ -21,7 +21,7 @@ import selectArea
 import computeAttribute
 
 # set the municipality (kommune) to be analyzed
-kommune = "bodo"
+kommune = "kristiansand"
 current_datetime = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
 # ------------------------------------------------------ #
 # Municipality Dependent Parameters  
