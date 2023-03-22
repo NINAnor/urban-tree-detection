@@ -2,11 +2,12 @@
 
 1. moveFile_lookUp.py
 2. extract_laz.bat
-3. define_projection.py
+
 4. moveFile_substring.py
 --> are .prj files also moved?
 --> move them manuale for baerum 
 3. renameFile.bat
+3. define_projection.py
 5. perform_tree_detection #rewrite script
 a. v1 = bodo, kristiandsand
 b. v2 = baerum

@@ -1,7 +1,7 @@
 import os
 import shutil
 
-kommune="baerum"
+kommune="kristiansand"
 root= r"P:\152022_itree_eco_ifront_synliggjore_trars_rolle_i_okosyst\raw_data"
 
 input_folder = os.path.join(root, kommune, "lidar\laz", "all")

@@ -1,5 +1,5 @@
 @echo off
-SET kommune=baerum
+SET kommune=kristiansand
 SET location="P:\152022_itree_eco_ifront_synliggjore_trars_rolle_i_okosyst\treeDetection\data\%kommune%\interim\lidar"
 
 echo %location%

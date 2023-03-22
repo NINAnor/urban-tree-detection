@@ -11,7 +11,7 @@ dotenv_path = os.path.join(user_dir, '.env')
 dotenv.load_dotenv(dotenv_path)
 config = dotenv_values(dotenv_path)
 
-kommune="baerum"
+kommune="kristiansand"
 # project data path variables 
 DATA_PATH = os.getenv('DATA_PATH')
 RAW_DATA_PATH = os.getenv('RAW_DATA_PATH')

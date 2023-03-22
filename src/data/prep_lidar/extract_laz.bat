@@ -11,7 +11,7 @@ rem Description: upacking .laz tiles and moving them as .las into the designated
 rem Doc: see NINA technical - Tree Detection 2023 "3. Data preprocessing"
 rem ---------------------------------------------------------------------------------------------------------------------------------------
 
-set kommune=baerum
+set kommune=kristiansand
 
 set source_folder="P:\152022_itree_eco_ifront_synliggjore_trars_rolle_i_okosyst\raw_data\%kommune%\lidar\laz\inside_BuildUpZone"
 set destination_folder="P:\152022_itree_eco_ifront_synliggjore_trars_rolle_i_okosyst\raw_data\%kommune%\lidar\las_inside_BuildUpZone"

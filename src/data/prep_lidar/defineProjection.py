@@ -7,10 +7,11 @@ from os.path import isfile, join
 # filepath
 # bodo (utm33); baerum (utm32); kristiansand (utm32)
 
-kommune="baerum"  
+kommune="kristiansand"  
 root= r"P:\152022_itree_eco_ifront_synliggjore_trars_rolle_i_okosyst\raw_data"
 las_dir = join(root, kommune, "lidar\las_inside_BuildUpZone")
-env.workspace = las_dir
+tile_dir = r"P:\152022_itree_eco_ifront_synliggjore_trars_rolle_i_okosyst\treeDetection\data\kristiansand\interim\lidar\491_92"
+env.workspace = tile_dir
 
 # list files with extension ".las"
 files_list = [f for f in listdir(env.workspace) if f.endswith('.las')]
@@ -24,7 +25,7 @@ projection = utm32[1]
 
 for file in files_list:
     arcpy.AddMessage("reproject <" + file + "> to " + utm32[0])
-    arcpy.management.DefineProjection(
-        file, projection)
+    arcpy.management.DefineProjection(file, projection)
     
 arcpy.AddMessage("Reprojection is finished.")
+
