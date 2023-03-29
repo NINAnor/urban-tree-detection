@@ -60,7 +60,7 @@ def create_DTM(d_las, r_dtm, spatial_resolution, study_area_path):
         out_raster = temp,  
         value_field = "ELEVATION",
         interpolation_type = "BINNING AVERAGE LINEAR",
-        data_type = "INT",
+        data_type = "FLOAT",   # Set to "INT" for speeding up analysis 
         sampling_type = "CELLSIZE",
         sampling_value = spatial_resolution, 
         z_factor = 1
@@ -109,7 +109,7 @@ def create_DSM(d_las, r_dsm, spatial_resolution, class_code, return_values, stud
         out_raster = temp,
         value_field = "ELEVATION",
         interpolation_type = "BINNING MAXIMUM LINEAR",
-        data_type = "INT",
+        data_type = "FLOAT",   # Set to "INT" for speeding up analysis 
         sampling_type = "CELLSIZE",
         sampling_value = spatial_resolution, 
         z_factor = 1
@@ -142,7 +142,7 @@ def create_CHM(r_dtm, r_dsm, r_chm):
 # 1.3 VEGETATION MASK
 # ------------------------------------------------------ #
    
-def create_RGB(d_las: str, r_rgb: str, study_area_path: str):
+def create_RGB(d_las: str, r_rgb: str, study_area_path: str, spatial_resolution: float):
     """_summary_
 
     Args:
@@ -157,9 +157,9 @@ def create_RGB(d_las: str, r_rgb: str, study_area_path: str):
         out_raster = temp,  
         value_field = "RGB", 
         interpolation_type = "BINNING NEAREST NATURAL_NEIGHBOR", 
-        data_type = "INT", 
+        data_type = "FLOAT",   # Set to "INT" for speeding up analysis 
         sampling_type = "CELLSIZE", 
-        sampling_value = "1", 
+        sampling_value = spatial_resolution, 
         z_factor = "1"
     )
     
@@ -202,7 +202,7 @@ def tgi_toVector(r_tgi, v_tgi):
     arcpy.RasterToPolygon_conversion(
         in_raster = r_tgi,
         out_polygon_features = v_tgi, 
-        simplify = "SIMPLIFY", 
+        simplify = "SIMPLIFY",  # TODO test with "NO_SIMPLIFY" 
         raster_field = "Value", 
         create_multipart_features = "SINGLE_OUTER_PART", 
         max_vertices_per_feature = ""
@@ -355,7 +355,7 @@ def identify_treeTops(r_sinks, r_focflow, r_focflow_01, v_treetop_poly,v_treetop
         arcpy.RasterToPolygon_conversion(
             in_raster = r_focflow_01,
             out_polygon_features = v_treetop_poly, 
-            simplify = "SIMPLIFY", 
+            simplify = "NO_SIMPLIFY", 
             raster_field = "Value", 
             create_multipart_features = "SINGLE_OUTER_PART", 
             max_vertices_per_feature = ""

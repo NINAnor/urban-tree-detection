@@ -21,7 +21,7 @@ import selectArea
 import computeAttribute
 
 # set the municipality (kommune) to be analyzed
-kommune = "bodo"
+kommune = "baerum"
 current_datetime = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
 # ------------------------------------------------------ #
 # Municipality Dependent Parameters  
@@ -31,24 +31,35 @@ if kommune == "oslo" or "baerum" :
     spatial_reference = "ETRS 1989 UTM Zone 32N"
     rgb_is_available = True       # Baerum = True, Kristiandsand and Bodø = False 
     veg_is_available = True        # Baerum = True, Kristiandsand and Bodø = False 
-    point_density = 10 
-    min_heigth = 2.5               # TO DO check municipalities specific min_height
-    
+    point_density = 10              # pkt/m2
+    min_heigth = 2               # TO DO check municipalities specific min_height
+    radius = 1.5                # radius can vary locally, dependent on species
+
 if kommune == "bodo" :
     spatial_reference = "ETRS 1989 UTM Zone 33N"
     rgb_is_available = False        # Baerum = True, Kristiandsand and Bodø = False 
     veg_is_available = False        # Baerum = True, Kristiandsand and Bodø = False 
-    point_density = 10 
-    min_heigth = 2.5               # TO DO check municipalities specific min_height
+    point_density = 2 
+    min_heigth = 2               # TO DO check municipalities specific min_height
+    radius = 1.5                # radius can vary locally, dependent on species
 
 if kommune == "kristiansand" :
     spatial_reference = "ETRS 1989 UTM Zone 32N"
     rgb_is_available = False        # Baerum = True, Kristiandsand and Bodø = False 
     veg_is_available = False        # Baerum = True, Kristiandsand and Bodø = False 
-    point_density = 10 
-    min_heigth = 2.5               # TO DO check municipalities specific min_height
+    point_density = 5 
+    min_heigth = 2               # min_height can vary locally, dependent on species
+    radius = 1.5                # radius can vary locally, dependent on species
 
-    
+
+# define the spatial resolution of the DSM/DTM/CHM grid based on lidar point density 
+if point_density >= 4:
+    spatial_resolution = 0.25 
+elif point_density < 4 and point_density >= 2: 
+    spatial_resolution =  0.5
+else: 
+    spatial_resolution = 1
+
 # start timer
 start_time0 = time.time()
 
@@ -68,8 +79,11 @@ config = dotenv_values(dotenv_path)
 # set secure variables
 # source dataset path variables
 FKB_BUILDING_PATH = os.getenv('FKB_BUILDING_PATH')
-FKB_WATER_PATH = os.getenv('FKB_WATER_PATH')
+#FKB_WATER_PATH = os.getenv('FKB_WATER_PATH')
+FKB_WATER_PATH = r"R:\\GeoSpatialData\\Topography\\Norway_FKB\\Original\\FKB-Vann FGDB-format\\Basisdata_0000_Norge_5973_FKB-Vann_FGDB.gdb"
+
 FKB_WATER_PATH = os.path.join(FKB_WATER_PATH, "fkb_vann_omrade")
+
 
 # project data path variables 
 DATA_PATH = os.getenv('DATA_PATH')
@@ -213,14 +227,9 @@ if not arcpy.Exists(v_tree_pnt_merge) or not arcpy.Exists(v_tree_poly_merge):
             arcpy.AddMessage("\t\tCHM for tile <<{}>> exists in database. Continue ...".format(tile_code))
         else:
             start_time1 = time.time()
-            
+                        
             # create DTM
-            if point_density >= 10:
-                spatial_resolution = 0.5 
-                tree.create_DTM(d_las, r_dtm, spatial_resolution, study_area_path)
-            else: 
-                spatial_resolution = 1 
-                tree.create_DTM(d_las, r_dtm, spatial_resolution, study_area_path)
+            tree.create_DTM(d_las, r_dtm, spatial_resolution, study_area_path)
             
             # create DSM 
             if veg_is_available:
@@ -271,9 +280,6 @@ if not arcpy.Exists(v_tree_pnt_merge) or not arcpy.Exists(v_tree_poly_merge):
         #       --> best filter size can vary locally, dependent on tree species
         # ------------------------------------------------------ #
         arcpy.AddMessage("\t1.4 Smoothing and Filtering the Canopy Height Model (CHM)")
-
-        min_heigth = min_heigth     # min_height can vary locally, dependent on species
-        radius = 1.5                # radius can vary locally, dependent on species
 
         start_time1 = time.time()
 
@@ -424,11 +430,11 @@ else:
     v_treecrown_result = os.path.join(output_path, "treecrown_poly")
     
     if arcpy.Exists(v_treetop_result) and arcpy.Exists(v_treecrown_result):
-        arcpy.AddMessage(f"\t\tThe treetops and treecrowns are already masked for false trees within building and water areas. Continue ...")
+        arcpy.AddMessage(f"\tThe treetops and treecrowns are already masked for false trees within building and water areas. Continue ...")
     else:
         
         # mask tree tops 
-        arcpy.AddMessage(f"\t\tThe tree tops are masked for false trees within building and water areas...")
+        arcpy.AddMessage(f"\tThe tree tops are masked for false trees within building and water areas...")
         selected_trees = os.path.join(output_path, "treetop_pnt")
         
         # TODO ADD IF EXISTS to vsea and vbuilding 
@@ -438,7 +444,7 @@ else:
         
         
         #mask tree crowns
-        arcpy.AddMessage(f"\t\tThe tree crowns are masked for false trees within building and water areas...")
+        arcpy.AddMessage(f"\tThe tree crowns are masked for false trees within building and water areas...")
 
         selected_trees = os.path.join(output_path, "treecrown_poly")
         v_treecrown_result = selectArea.mask_tree(v_tree_poly_merge, v_building,v_sea,selected_trees)
@@ -469,3 +475,6 @@ else:
 end_time0 = time.time()
 execution_time0 = (end_time0 - start_time0)/60
 arcpy.AddMessage("TOTAL TIME:\t {:.2f} min".format(execution_time0))
+
+# TODO 4.5 IDENTIFY FALSE DETECTIONS (v2!)
+# TODO compute crown vlume using v2! 
