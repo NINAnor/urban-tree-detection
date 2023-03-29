@@ -13,9 +13,9 @@ rem ----------------------------------------------------------------------------
 
 set kommune=kristiansand
 
-set source_folder="P:\152022_itree_eco_ifront_synliggjore_trars_rolle_i_okosyst\raw_data\%kommune%\lidar\laz\inside_BuildUpZone"
-set destination_folder="P:\152022_itree_eco_ifront_synliggjore_trars_rolle_i_okosyst\raw_data\%kommune%\lidar\las_inside_BuildUpZone"
-set laszip_exe="P:\15220700_gis_samordning_2022_(marea_spare_ecogaps)\Willeke\trekroner\treeDetection\tools\LAStools\bin\laszip.exe"
+set source_folder="P:\152022_itree_eco_ifront_synliggjore_trars_rolle_i_okosyst\treeDetection\data\%kommune%\raw\laz\inside_BuildUpZone"
+set destination_folder="P:\152022_itree_eco_ifront_synliggjore_trars_rolle_i_okosyst\treeDetection\data\%kommune%\raw\las_inside_BuildUpZone"
+set laszip_exe="P:\152022_itree_eco_ifront_synliggjore_trars_rolle_i_okosyst\treeDetection\tools\LAStools\bin\laszip.exe"
 
 rem Display source and destination folder
 echo --------------------------------------------------------------------------------------------------------------------------------------

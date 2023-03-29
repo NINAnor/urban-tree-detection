@@ -3,6 +3,8 @@ import shutil
 import dotenv
 from dotenv import dotenv_values
 
+kommune="kristiansand"
+
 # search for .env file in USER directory 
 # user_dir = C:\\USERS\\<<firstname.lastname>>
 user_dir = os.path.join(os.path.expanduser("~"))
@@ -11,11 +13,9 @@ dotenv_path = os.path.join(user_dir, '.env')
 dotenv.load_dotenv(dotenv_path)
 config = dotenv_values(dotenv_path)
 
-kommune="kristiansand"
 # project data path variables 
 DATA_PATH = os.getenv('DATA_PATH')
-RAW_DATA_PATH = os.getenv('RAW_DATA_PATH')
-source_dir = os.path.join(RAW_DATA_PATH, kommune, "lidar", "las_inside_BuildUpZone")
+source_dir = os.path.join(DATA_PATH, kommune, "raw", "las_inside_BuildUpZone")
 target_dir = os.path.join(DATA_PATH, kommune, "interim","lidar")
 
 print(source_dir)
