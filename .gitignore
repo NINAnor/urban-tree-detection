@@ -172,6 +172,9 @@ poetry.toml
 # exclude data from source control by default
 /data/
 /tools/
+src/data/test/
+src/models/test/
+src/visualizations/test/
 /test/
 /docs/
 
