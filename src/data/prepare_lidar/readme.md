@@ -8,6 +8,6 @@
 
 ## TODO
 - 5. define_projection loop through sub folders
-- use .batch file that runs everything step for step 
+- use make_data
 
 
