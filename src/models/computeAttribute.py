@@ -97,7 +97,7 @@ def attr_crownArea(v_treecrown_result, output_path):
                   join_a_dest= "crown_id", 
                   t_src= v_mbg, 
                   join_a_src= "crown_id", 
-                  a_src=["MBG_Diameter"],
+                  a_src=["MBG_Length"],
                   a_dest=["crown_diam"]
                   )
     arcpy.Delete_management(v_mbg)

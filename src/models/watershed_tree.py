@@ -479,4 +479,3 @@ execution_time0 = (end_time0 - start_time0)/60
 arcpy.AddMessage("TOTAL TIME:\t {:.2f} min".format(execution_time0))
 
 # TODO 4.5 IDENTIFY FALSE DETECTIONS (v2!)
-# TODO compute crown vlume using v2! 
