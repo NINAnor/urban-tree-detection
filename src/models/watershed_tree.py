@@ -15,7 +15,8 @@ import time
 import dotenv
 from dotenv import dotenv_values
 import datetime
-from utils.control import Log
+## TODO use logger instead
+#from utils.control import Log
 import tree
 import selectArea
 import computeAttribute
@@ -49,7 +50,7 @@ if kommune == "kristiansand" :
     veg_is_available = False        # Baerum = True, Kristiandsand and Bodø = False 
     point_density = 5 
     min_heigth = 2               # min_height can vary locally, dependent on species
-    radius = 1.5                # radius can vary locally, dependent on species
+    radius = 1.5                # radius can vary locally, dependent on species and can be tuned with gtd 
 
 
 # define the spatial resolution of the DSM/DTM/CHM grid based on lidar point density 
@@ -103,7 +104,7 @@ v_tree_pnt_merge = os.path.join(output_path, "treetop_pnt_merge")
 #------------------------------------------------------ #
 # Workspace settings
 # ------------------------------------------------------ #
-log_file = Log(processed_data_path,"tree_dectection_v1_log.txt")
+#log_file = Log(processed_data_path,"tree_dectection_v1_log.txt")
 env.overwriteOutput = True
 env.outputCoordinateSystem = arcpy.SpatialReference(spatial_reference)
 env.workspace = interim_data_path
@@ -220,6 +221,7 @@ if not arcpy.Exists(v_tree_pnt_merge) or not arcpy.Exists(v_tree_poly_merge):
         #     Create DTM (old 1.5)
         #     Create DSM (old 1.6)
         #     Create CHM (old 1.7)
+        #     Create CHM for the study area (TODO add +200m buffer to avoid edge effect?)
         # ------------------------------------------------------ #
         arcpy.AddMessage("\t1.2 Create Canopy Height Model (CHM)")
 

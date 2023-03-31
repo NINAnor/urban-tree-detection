@@ -74,15 +74,18 @@ def attr_crownID(v_treecrown_result):
             cursor.updateRow(row)
     #arcpy.CalculateField_management(v_treecrown_result, "crown_id", "SHAPE@OID")
 
-# Compute crown diameter for each tree polygon using Minimum Bounding Geometry
+
+
+# Calculate crown diameter as maximum length of convex hull, 
+# Not as diameter of Minimum Bounding Geometr which might lead to unrealistic estimates
 def attr_crownArea(v_treecrown_result, output_path):
 
-    arcpy.AddMessage(f"\tComputing the crown diameter by using the Minimum Bounding Geometry... ")
+    arcpy.AddMessage(f"\tComputing the crown diameter as maximum length of the convex hull... ")
     v_mbg = os.path.join(output_path, "mbg_temp")
     arcpy.MinimumBoundingGeometry_management(
         v_treecrown_result,
         v_mbg,
-        "CIRCLE", # TODO - adjust geometry here if necessary
+        "CONVEX_HULL", # tree_detection_v1 uses "CIRCLE"
         "NONE", 
         "", 
         "MBG_FIELDS"

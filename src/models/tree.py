@@ -202,7 +202,7 @@ def tgi_toVector(r_tgi, v_tgi):
     arcpy.RasterToPolygon_conversion(
         in_raster = r_tgi,
         out_polygon_features = v_tgi, 
-        simplify = "SIMPLIFY",  # TODO test with "NO_SIMPLIFY" 
+        simplify = "NO_SIMPLIFY",  # treedetection_v1 uses "SIMPLIFY" to speed up the processingtime
         raster_field = "Value", 
         create_multipart_features = "SINGLE_OUTER_PART", 
         max_vertices_per_feature = ""
@@ -298,7 +298,6 @@ def watershed_segmentation(r_chm_smooth,r_chm_flip,r_flowdir,r_sinks,r_watershed
         return r_sinks
     
     # identify watersheds 
-
     def identify_watersheds(r_flowdir, r_sinks):
         arcpy.AddMessage("\t\tIdentifying watersheds...")
         arcpy.gp.Watershed_sa(
@@ -355,7 +354,7 @@ def identify_treeTops(r_sinks, r_focflow, r_focflow_01, v_treetop_poly,v_treetop
         arcpy.RasterToPolygon_conversion(
             in_raster = r_focflow_01,
             out_polygon_features = v_treetop_poly, 
-            simplify = "NO_SIMPLIFY", 
+            simplify = "NO_SIMPLIFY",       # treedetection_v1 uses "SIMPLIFY" to speed up the processingtime
             raster_field = "Value", 
             create_multipart_features = "SINGLE_OUTER_PART", 
             max_vertices_per_feature = ""
@@ -407,7 +406,7 @@ def identify_treeCrowns(r_watersheds, v_treecrown_poly):
     arcpy.RasterToPolygon_conversion(
         in_raster = r_watersheds,
         out_polygon_features = v_treecrown_poly, 
-        simplify = "SIMPLIFY", 
+        simplify = "NO_SIMPLIFY",  # treedetection_v1 uses "SIMPLIFY" to speed up the processingtime
         raster_field = "Value", 
         create_multipart_features = "SINGLE_OUTER_PART", 
         max_vertices_per_feature = ""
