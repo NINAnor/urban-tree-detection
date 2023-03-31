@@ -64,15 +64,15 @@ def attr_lidarTile(layer, tile_code):
 
 # Assign a unique ID to each tree polygon
 def attr_crownID(v_treecrown_result):
-    arcpy.AddMessage(f"\tAdding the attribute <<crown_id>> using the unique ObjectID number... ")
+    arcpy.AddMessage(f"\tAdding the attribute <<crown_id_laser>> using the unique ObjectID number... ")
 
-    arcpy.AddField_management(v_treecrown_result, "crown_id", "LONG")
+    arcpy.AddField_management(v_treecrown_result, "crown_id_laser", "LONG")
     
-    with arcpy.da.UpdateCursor(v_treecrown_result, ["OBJECTID", "crown_id"]) as cursor:
+    with arcpy.da.UpdateCursor(v_treecrown_result, ["OBJECTID", "crown_id_laser"]) as cursor:
         for row in cursor:
             row[1] = row[0]
             cursor.updateRow(row)
-    #arcpy.CalculateField_management(v_treecrown_result, "crown_id", "SHAPE@OID")
+    #arcpy.CalculateField_management(v_treecrown_result, "crown_id_laser", "SHAPE@OID")
 
 
 
@@ -94,9 +94,9 @@ def attr_crownArea(v_treecrown_result, output_path):
     arcpy.AddMessage(f"\tAdding the attribute <<crown_diam>>... ")
     arcpy.AddField_management(v_treecrown_result, "crown_diam", "FLOAT")
     join_and_copy(t_dest=v_treecrown_result,
-                  join_a_dest= "crown_id", 
+                  join_a_dest= "crown_id_laser", 
                   t_src= v_mbg, 
-                  join_a_src= "crown_id", 
+                  join_a_src= "crown_id_laser", 
                   a_src=["MBG_Length"],
                   a_dest=["crown_diam"]
                   )
@@ -150,7 +150,7 @@ def polygonAttr_toPoint(v_treetop_result, v_treecrown_result, output_path):
     
     #arcpy.CalculateField_management(v_treetop_result, "tmp_id", '[OBJECTID]')
 
-    arcpy.AddMessage(f"\tJoining the tree crown attributes: crown_id, crown_diam, crown_area, crown_peri to the treetop points... ")
+    arcpy.AddMessage(f"\tJoining the tree crown attributes: crown_id_laser, crown_diam, crown_area, crown_peri to the treetop points... ")
     v_join = os.path.join(output_path, "join_tmp")
     arcpy.SpatialJoin_analysis(
         v_treetop_result,
@@ -162,14 +162,14 @@ def polygonAttr_toPoint(v_treetop_result, v_treecrown_result, output_path):
     )
     
     # Assign tree crown ID to tree points
-    arcpy.AddField_management(v_treetop_result, "crown_id", "LONG")
+    arcpy.AddField_management(v_treetop_result, "crown_id_laser", "LONG")
     join_and_copy(
         v_treetop_result, 
         "tmp_id", 
         v_join, 
         "tmp_id", 
-        ["crown_id"], 
-        ["crown_id"]
+        ["crown_id_laser"], 
+        ["crown_id_laser"]
     )
 
     arcpy.Delete_management(v_join)
@@ -182,9 +182,9 @@ def polygonAttr_toPoint(v_treetop_result, v_treecrown_result, output_path):
 
     join_and_copy(
         v_treetop_result, 
-        "crown_id", 
+        "crown_id_laser", 
         v_treecrown_result, 
-        "crown_id", 
+        "crown_id_laser", 
         ["crown_diam", "crown_area", "crown_peri"], 
         ["crown_diam", "crown_area", "crown_peri"]
     )
@@ -199,9 +199,9 @@ def pointAttr_toPolygon(v_treecrown_result,v_treetop_result):
 
     join_and_copy(
     v_treecrown_result, 
-    "crown_id", 
+    "crown_id_laser", 
     v_treetop_result, 
-    "crown_id", 
+    "crown_id_laser", 
     ["tree_height", "tree_altit"], 
     ["tree_height", "tree_altit"]
 )
@@ -219,7 +219,7 @@ def attr_crownVolume(layer):
     arcpy.AddField_management(layer, "tree_volum", "FLOAT")
     arcpy.CalculateField_management(
     in_table=layer,
-    field="tree_volum", 
+    field="tree_volume", 
     expression="(1.0/3.0) * math.pi * ( !crown_diam! /2.0 ) * ( !crown_diam! /2.0) * float(!tree_height!)",
     expression_type="PYTHON_9.3", 
     code_block=""
