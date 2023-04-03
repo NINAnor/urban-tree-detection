@@ -22,7 +22,7 @@ import selectArea
 import computeAttribute
 
 # set the municipality (kommune) to be analyzed
-kommune = "baerum"
+kommune = "bodo"
 current_datetime = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
 # ------------------------------------------------------ #
 # Municipality Dependent Parameters  
@@ -197,12 +197,12 @@ if not arcpy.Exists(v_tree_pnt_merge) or not arcpy.Exists(v_tree_poly_merge):
         r_focflow_01 = os.path.join(prefix + "_016_focflow_01_temp") # temporary file
         v_treetop_poly = os.path.join(prefix + "_016_treetop_poly_temp") # temporary file
         v_treetop_singlepoly = os.path.join(prefix + "_016_treetop_singlepoly_temp") # temporary file
-        v_treetop_pnt = os.path.join(prefix + "_016_treetop_pnt")
-        v_tree_pnt = os.path.join(output_path, "tile_" + tile_code + "_tree_pnt") # tree points in study area 
+        v_treetop_pnt = os.path.join(prefix + "_016_treetop_pnt_temp")
+        v_tree_pnt = os.path.join(prefix + "_016_treetop_pnt") # tree points in study area 
 
         # identify tree crowns 
-        v_treecrown_poly = os.path.join(prefix + "_017_treecrown_poly") # old name v_watersheds
-        v_tree_poly = os.path.join(output_path, "tile_" + tile_code + "_tree_poly") # trees polygons in study area 
+        v_treecrown_poly = os.path.join(prefix + "_017_treecrown_poly_temp") # old name v_watersheds
+        v_tree_poly = os.path.join(prefix + "_017_treecrown_poly") # trees polygons in study area 
 
         # ------------------------------------------------------ #
         # 1.1 Create LAS Dataset
@@ -340,6 +340,8 @@ if not arcpy.Exists(v_tree_pnt_merge) or not arcpy.Exists(v_tree_poly_merge):
         #     Convert tree top polygons to points (old 1.18)
         # ------------------------------------------------------ #        
 
+        # TODO use version 2 instead! 
+        # r_focflow_01 can be deleted
         try:        
             arcpy.AddMessage("\t1.6 Identify Tree Tops  ")
             start_time1 = time.time()
@@ -347,7 +349,7 @@ if not arcpy.Exists(v_tree_pnt_merge) or not arcpy.Exists(v_tree_poly_merge):
                 arcpy.AddMessage("\t\tThe treetop vector for tile <<{}>> exists in database. Continue ...".format(tile_code))
             else: 
                 # nested function to identify treeTops
-                tree.identify_treeTops(r_sinks, r_focflow, r_focflow_01, v_treetop_poly,v_treetop_singlepoly, r_chm_h, r_dsm, v_treetop_pnt)
+                tree.identify_treeTops(r_sinks, r_focflow, v_treetop_poly,v_treetop_singlepoly, r_chm_h, r_dsm, v_treetop_pnt)
                 end_time1(start_time1)
         except Exception as e:
             # catch any exception and print error message. 
@@ -368,7 +370,7 @@ if not arcpy.Exists(v_tree_pnt_merge) or not arcpy.Exists(v_tree_poly_merge):
             tree.identify_treeCrowns(r_watersheds,v_treecrown_poly)
             end_time1(start_time1)
 
-        list_tree_poly_names.append(v_treecrown_poly)
+
         
         # adding lidar info to attr. 
         computeAttribute.attr_lidarTile(v_treetop_pnt, tile_code)
@@ -381,7 +383,50 @@ if not arcpy.Exists(v_tree_pnt_merge) or not arcpy.Exists(v_tree_poly_merge):
         #     STEP 1.8 NOT NECESSARY already selected by study area by using Extract by Mask in CHM and vegetation mask     
         # ------------------------------------------------------ #
 
+         # ------------------------------------------------------ #
+        # 12 Select only tree polygons within neighbourhood (i.e., the ones that intersect with tree tops)
+        # ------------------------------------------------------ #
+        arcpy.AddMessage("\t\tEnsuring that each treecrown polygon contains one treetop point ...")
+        
+        l_tree_poly = arcpy.MakeFeatureLayer_management(
+            v_treecrown_poly, 
+            "treecrown_poly_lyr"
+        )
+        
+        arcpy.SelectLayerByLocation_management(
+            l_tree_poly, 
+            "INTERSECT",
+            v_treetop_pnt,
+            "",
+            "NEW_SELECTION"
+        )
 
+        arcpy.CopyFeatures_management(
+            in_features = l_tree_poly,
+            out_feature_class = v_tree_poly
+        )
+        
+        
+        l_tree_pnt = arcpy.MakeFeatureLayer_management(
+            v_treetop_pnt, 
+            "treetop_pnt_lyr"
+        )
+        
+        arcpy.SelectLayerByLocation_management(
+            l_tree_pnt, 
+            "INTERSECT",
+            v_tree_poly,
+            "",
+            "NEW_SELECTION"
+        )
+
+        arcpy.CopyFeatures_management(
+            in_features = l_tree_pnt,
+            out_feature_class = v_tree_pnt
+        )
+        #arcpy.Delete_management(v_watersheds)
+        list_tree_poly_names.append(v_tree_poly)
+        list_tree_pnt_names.append(v_tree_pnt)
         arcpy.AddMessage("\t---------------------")
         #break 
 

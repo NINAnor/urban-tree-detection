@@ -48,12 +48,12 @@ def join_and_copy(t_dest, join_a_dest, t_src, join_a_src, a_src, a_dest):
 
 # Add LiDAR information
 def attr_lidarTile(layer, tile_code):
-    format_tile_code = tile_code[:3] + "-" + tile_code[4:]
+    format_tile_code = str(tile_code[:3] + "_" + tile_code[4:])
 
     arcpy.AddMessage(f"\t\tAdding the attribute <<lidar_tile>> with the corresponding tile code: {format_tile_code}... ")
     # Store information on neighbourhood code
     arcpy.AddField_management(layer, "lidar_tile", "TEXT")
-    arcpy.CalculateField_management(layer, "lidar_tile", str(format_tile_code))
+    arcpy.CalculateField_management(layer, "lidar_tile", format_tile_code)
     
     # Delete useless attributes
     arcpy.DeleteField_management(

@@ -323,11 +323,17 @@ def watershed_segmentation(r_chm_smooth,r_chm_flip,r_flowdir,r_sinks,r_watershed
 # 1.6 IDENTIFY TREE TOPS 
 # ------------------------------------------------------ #
 
-def identify_treeTops(r_sinks, r_focflow, r_focflow_01, v_treetop_poly,v_treetop_singlepoly, r_chm_h, r_dsm, v_treetop_pnt):
+def identify_treeTops(r_sinks, r_focflow, v_treetop_poly,v_treetop_singlepoly, r_chm_h, r_dsm, v_treetop_pnt):
     
     # Identify tree tops (I) by identifying focal flow
     def identify_focalFlow():
         arcpy.AddMessage("\t\tIdentifying tree tops by focal flow...")
+        #r_focflow = arcpy.sa.FocalFlow(
+        #    r_sinks, 
+        #    "0,5"
+        #   )
+        
+        #version1
         arcpy.gp.FocalFlow_sa(
             r_sinks, 
             r_focflow,
@@ -337,29 +343,30 @@ def identify_treeTops(r_sinks, r_focflow, r_focflow_01, v_treetop_poly,v_treetop
         return r_focflow
     
     # Identify tree tops (II) by converting focal flow values from 0 to 1
-    def convert_focalFlow():
-        arcpy.AddMessage("\t\tIdentifying tree tops by converting focal flow values from 0 to 1...")
+    # delete/do not use for version2 
+    #def convert_focalFlow():
+        #arcpy.AddMessage("\t\tIdentifying tree tops by converting focal flow values from 0 to 1...")
     
-        arcpy.gp.RasterCalculator_sa(
-            'Con("{}" == 0, 1)'.format(r_focflow), 
-            r_focflow_01
-        )
-        arcpy.Delete_management(r_focflow)
-        return r_focflow_01
+        #arcpy.gp.RasterCalculator_sa(
+            #'Con("{}" == 0, 1)'.format(r_focflow), 
+        #    r_focflow_01
+        #)
+        #arcpy.Delete_management(r_focflow)
+        #return r_focflow_01
     
     # Vectorize tree tops to polygons
     def focalFlow_toVector():
         arcpy.AddMessage("\t\tVectorizing tree tops to polygons...")
     
         arcpy.RasterToPolygon_conversion(
-            in_raster = r_focflow_01,
+            in_raster = r_focflow,
             out_polygon_features = v_treetop_poly, 
             simplify = "NO_SIMPLIFY",       # treedetection_v1 uses "SIMPLIFY" to speed up the processingtime
             raster_field = "Value", 
             create_multipart_features = "SINGLE_OUTER_PART", 
             max_vertices_per_feature = ""
         )
-        arcpy.Delete_management(r_focflow_01)
+        arcpy.Delete_management(r_focflow)
         return v_treetop_poly
       
 
@@ -390,7 +397,7 @@ def identify_treeTops(r_sinks, r_focflow, r_focflow_01, v_treetop_poly,v_treetop
         return v_treetop_pnt
     
     identify_focalFlow()
-    convert_focalFlow()
+    #convert_focalFlow()
     focalFlow_toVector()
     focalFlow_vectorToPoint()
     
