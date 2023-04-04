@@ -4,6 +4,18 @@
 - license 
 - lookat makefile etc. 
 
+
+# variable names
+%xxx%_admin = admin dataset
+- study area extent 
+%xxx%_in_situ_trees = municipal tree dataset
+- stem_point 
+
+%xxx%_laser_trees = laser segmented tree dataset
+- crown_laser(tree crown polygon)
+- top_laser (tree top point) 
+%xxx%_urban_trees = combined municipal and laser tree dataset 
+
 ```shell
 ## folder structure
 ## raw data folder
@@ -16,6 +28,7 @@ P:/
                     │── all/
                     │── inside_BuildUpZone/
                     └── outside_BuildUpZone/	
+
                 │── laz/
                 └── raw/	
             └── vector/	
@@ -96,3 +109,17 @@ Project Organization
     │       └── visualize.py
     │
     └── tox.ini            <- tox file with settings for running tox; see tox.readthedocs.io
+
+
+    Add treeDetection to python path:
+    ```shell
+    conda activate pro3-imagery
+
+    cd /D P:\152022_itree_eco_ifront_synliggjore_trars_rolle_i_okosyst\treeDetection
+
+    ```
+
+
+SETUP
+
+conda install 
