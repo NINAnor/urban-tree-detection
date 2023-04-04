@@ -170,14 +170,17 @@ cython_debug/
 poetry.toml
 
 # exclude data from source control by default
-/data/
+/data/*
+!data/.gitkeep 
 /tools/*
 # exception to the rule
 !tools/.gitkeep 
-src/data/test/
-src/models/test/
+src/data/test/*
+src/models/test/*
 src/visualizations/test/
-/test/
-/docs/
+/test/*
+!test/.gitkeep 
+/docs/*
+!docs/.gitkeep 
 
 # End of https://www.toptal.com/developers/gitignore/api/python
