@@ -1,7 +1,10 @@
 import arcpy
 import os 
-from utils.joinLayer import *
 
+# project pacakge read the readme file on how to install it properly
+from src import join_and_copy
+
+print("test")
 
 def fieldExist(featureclass:str, fieldname:str):
     """

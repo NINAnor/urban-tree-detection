@@ -1,15 +1,24 @@
-# -*- coding: utf-8 -*-
 
-"""Top-level package for treeDetection."""
+"""
+The `treeDetection` package provides
 
-__author__ = """Willeke A'Campo"""
-__email__ = 'willeke.acampo@nina.com'
-__version__ = '0.0.1'
+Submodules:
+- `models`:
+- `utils`: 
 
-# import all classes and functions from the module control 
-# `.` refers that the module control is located in the current package or module.  
-#from .control import *
-#from .data import * 
+Usage:
+To use the `sentiment_analysis` package, simply import it in your Python code as follows:
+    import sentiment_analysis
 
-from utils import control
-from data import prepare_lidar
+You can then use the functions and classes provided by the submodules to ... 
+
+
+
+"""
+
+
+# import specific functions and classes to  
+# they can be imported from other parts of the projects using the syntax "from src import ..."   
+from .utils.joinLayer import join_and_copy
+from .data import prepare_lidar
+#from .models import watershed_tree
