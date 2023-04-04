@@ -4,7 +4,7 @@ This project provides a workflow for preparing an input dataset for i-Tree Eco a
 
 This repository provides code for:
 
-(i) preparing Airborne laser scanning (ALS) data from Kartverket (<<https://hoydedata.no/>>)
+(i) preparing Airborne laser scanning (ALS) data from Kartverket (<https://hoydedata.no/>)
 (ii) a watershed segmentation method following the workflow from Hanssen et al. (2021) to detect trees in the built-up zone of Norwegian municipalities using ALS data. 
 (iii) preparing an input dataset for an i-Tree Eco analysis by supplementing existing municipal tree inventories with crown geometry from the ALS data and auxiliary spatial datasets following the workflow by Cimburova and Barton (2020).  
 (iv) extrapolating the outputs from i-Tree Eco analysis to all municipal trees following the workflow by Cimburova and Barton (2020).    
@@ -26,18 +26,32 @@ This project provides a workflow for preparing a complete input dataset for i-Tr
 
 ### Installation ###
 
-The code is build in an ArcGIS Pro 3.1.0. conda environment with 3D analyst, image analyst, spatial analyst licensed. The `environment.yml` file can be used to create a conda environment for ArcGIS Pro 3.0.1 with all dependencies installed:
+The code is build in an ArcGIS Pro 3.1.0. conda environment with 3D analyst, image analyst, spatial analyst licensed. 
 
+Here are the steps to create a conda env compatible with ArcGIS Pro 3.0.1 and to install the package treeDetection:
+
+1. Create a new conda environment with the necessary dependencies described in `environment.yml`
+
+    # navigate to the project directory
+    cd /d P:\%project_folder%\treeDetection
     cd ...\urban-treeDetection
     conda env create environment.yml
-    conda activate urban-treeDetection
+    conda activate treeDetection
 
-### Dataset ###
+    # remove conda env incase you need to re-install
+
+2. Install the treeDetection (urban-treeDetection/src) as a local package using pip:
+
+    # install in development mode if you wish to build further on this project
+    pip install -e . 
+
+    # this creates a folder treeDetection.egg-info
+
+    conda remove --name myenv --all
+    # verify name is deleted from list
+    conda info --envs
 
 
-To prepare a dataset for training and testing, run the `prepare.py` script.  You can specify the bands in the input raster using the `--bands` flag (currently `RGB` and `RGBN` are supported.)
-
-    python3 -m scripts.prepare <path to dataset> <path to hdf5 file> --bands RGBN
 
 
 
@@ -45,7 +59,17 @@ To prepare a dataset for training and testing, run the `prepare.py` script.  You
 
 
 
-### Using your own data ###
+
+
+
+
+### Detect trees in your Municipality ###
+
+3. Create Folder structure
+
+4. Run the script ...
+
+5. Run the script ...
 
 
 
