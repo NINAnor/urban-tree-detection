@@ -171,7 +171,9 @@ poetry.toml
 
 # exclude data from source control by default
 /data/
-/tools/
+/tools/*
+# exception to the rule
+!tools/.gitkeep 
 src/data/test/
 src/models/test/
 src/visualizations/test/
