@@ -5,8 +5,11 @@ This project provides a workflow for preparing an input dataset for i-Tree Eco a
 This repository provides code for:
 
 (i) preparing Airborne laser scanning (ALS) data from Kartverket (<https://hoydedata.no/>)
+
 (ii) a watershed segmentation method following the workflow from Hanssen et al. (2021) to detect trees in the built-up zone of Norwegian municipalities using ALS data. 
+
 (iii) preparing an input dataset for an i-Tree Eco analysis by supplementing existing municipal tree inventories with crown geometry from the ALS data and auxiliary spatial datasets following the workflow by Cimburova and Barton (2020).  
+
 (iv) extrapolating the outputs from i-Tree Eco analysis to all municipal trees following the workflow by Cimburova and Barton (2020).    
 
 The repository is applied on the Norwegian municipalities: Bærum, Bodø, Kristiansand and Oslo. 
