@@ -1,230 +1,266 @@
-# ------------------------------------------------------ #
-# 4. Compute additional attributes
-# ------------------------------------------------------ #
 import arcpy
-import os
+import os 
+from utils.joinLayer import *
 
-# Join "source_table" to "destination table" and copy attributes from "source table" to attributes in "destination table"
-def join_and_copy(t_dest, join_a_dest, t_src, join_a_src, a_src, a_dest):
-     
-    name_dest = arcpy.Describe(t_dest).name
-    name_src = arcpy.Describe(t_src).name
-     
-    # Create layer from "destination table"
-    l_dest = "dest_lyr"
-    arcpy.MakeFeatureLayer_management(t_dest, l_dest)
-     
-    # Join
-    arcpy.AddJoin_management(l_dest, join_a_dest, t_src, join_a_src)
+
+def fieldExist(featureclass:str, fieldname:str):
+    """
+    Check if an attribute field exists
+
+    Args:
+        featureclass (str): The path to the feature class.
+        fieldname (str): The name of the field to check.
+
+    Returns:
+        bool: True if the field exists, False otherwise. 
+    """  
+    fieldList = arcpy.ListFields(featureclass, fieldname)
+    fieldCount = len(fieldList)
+ 
+    if (fieldCount == 1):
+        return True
+    else:
+        return False
+ 
+         
+
+def addField_ifNotExists(featureclass:str, fieldname:str, type:str):
+    """
+    Adds a field to a feature class if the field does not already exist.
+
+    Args:
+        featureclass (str): The path to the feature class.
+        fieldname (str): The name of the field to add.
+        type (str): The data type of the field to add.
+    """    
+    if (not fieldExist(featureclass, fieldname)):
+        arcpy.AddField_management(featureclass, fieldname, type)
+        
+# ------------------------------------------------------ #
+# Class "LaserAttributes"
+# ------------------------------------------------------ #
+
+class LaserAttributes:
+    """ 
+    A class for computing attributes for laser segmented trees. 
     
-    # Copy attributes   
-    for src_field, dest_field in zip(a_src, a_dest):
-        arcpy.AddMessage(
-            "\tCopying values from " + name_src +  "." + src_field + " to " + name_dest + "." + dest_field
-        )
-        arcpy.CalculateField_management(
-            l_dest, 
-            name_dest + "." + dest_field, 
-            "!" + name_src + "." + src_field + "!"
+    Attributes:
+    -----------
+    path : str
+        path to filegdb containing the treecrown polygon and treetop pnt files 
+        (output_path)
+    crown_filename : str
+        (v_treecrown_result) 
+    top_filename : str
+        (v_treetop_result)
+     
+    Methods:
+    --------
+    attr_lidarTile(self, tile_code):
+        Adds the attribute 'lidar_tile' (TEXT) to the crown feature class.     
+    attr_crownID(self):
+        Adds the attribute 'crown_id_laser' (LONG) to the crown feature class.                
+    attr_crownDiam(self):
+        Adds the attribtue 'crown_diam' (FLOAT) to the crown feature class.  
+    attr_crownArea(self):
+        Adds the attribtue 'crown_area' (FLOAT) and 'crown_peri' (FLOAT) to the crown feature class. 
+    join_crownID_toTop(self):
+        Joins the attribtue 'crown_id_laser' (LONG) to the top feature class. 
+    join_topAttr_toCrown(self):
+        Joins the attribute 'tree_height' (SHORT) and 'tree_altit' (LONG) to the crown feature class. 
+    attr_crownVolume(self):
+        Adds the attribute 'tree_volume' (FlOAT) to the crown feature class. 
+    """
+    
+    def __init__(self, path:str, crown_filename:str, top_filename:str):
+        self.path = path
+        self.crown_filename = crown_filename 
+        self.top_filename = top_filename
+    
+    def attr_lidarTile(self, tile_code:str):
+        """  
+        Adds the attribute 'lidar_tile' (TEXT) to the crown feature class. 
+            > Contains the <xxx_yyy> substring of the lidar tile name.
+        """     
+        
+        format_tile_code = str(tile_code[:3] + "_" + tile_code[4:])
+        arcpy.AddMessage(f"\t\tAdding the attribute <<lidar_tile>> with the corresponding tile code: {format_tile_code}... ")
+        
+        # Store information on neighbourhood code
+        arcpy.AddField_management(self.crown_filename, "lidar_tile", "TEXT")
+        arcpy.CalculateField_management(self.crown_filename, "lidar_tile", format_tile_code)
+        #arcpy.AddField_management(self.top_filename, "lidar_tile", "TEXT")
+        #arcpy.CalculateField_management(self.top_filename, "lidar_tile", format_tile_code)
+        
+        # Delete useless attributes
+        arcpy.DeleteField_management(
+            self.crown_filename, 
+            ["Id", "gridcode", "ORIG_FID"]
         )
         
-    # Copy attributes   
-    #i = 0
-    #for i in a_src: #a
-        #arcpy.AddMessage(
-        #    "Copying values from " + name_src +  "." + a_src[i] + " to " + name_dest + "." + a_dest[i]
-        #)
-        #arcpy.CalculateField_management(
-        #    l_dest, 
-        #    name_dest + "." + a_dest[i], 
-        #    "[" + name_src + "." + a_src[i] + "]"
-        #)
-        #i = i+1  
+        # Delete useless attributes
+        arcpy.DeleteField_management(
+            self.top_filename, 
+            ["Id", "gridcode", "ORIG_FID"]
+        )
+        
+    def attr_crownID(self):
+        """  
+        Adds the attribute 'crown_id_laser' (LONG) to the crown feature class.
+            > Computes crown id from OBJECTID.
+        """ 
+        arcpy.AddMessage(f"\tAdding the attribute <<crown_id_laser>> using the unique ObjectID number... ")
+    
+        arcpy.AddField_management(self.crown_filename, "crown_id_laser", "LONG")
+        
+        with arcpy.da.UpdateCursor(self.crown_filename, ["OBJECTID", "crown_id_laser"]) as cursor:
+            for row in cursor:
+                row[1] = row[0]
+                cursor.updateRow(row)
+
+
+    def attr_crownDiam(self):
+        """
+        Adds the attribtue 'crown_diam' (FLOAT) to the crown feature class. 
+            > Computes the crown diameter as maximum length of the convex hull. 
+        """
+        arcpy.AddMessage(f"\tComputing the crown diameter as maximum length of the convex hull... ")
+        v_mbg = os.path.join(self.path, "mbg_temp")
+        arcpy.MinimumBoundingGeometry_management(
+            self.crown_filename,
+            v_mbg,
+            "CONVEX_HULL", # tree_detection_v1 uses "CIRCLE"
+            "NONE", 
+            "", 
+            "MBG_FIELDS"
+        )
+            
+        arcpy.AddMessage(f"\tAdding the attribute <<crown_diam>>... ")
+        arcpy.AddField_management(self.crown_filename, "crown_diam", "FLOAT")
+        self.join_and_copy(
+            t_dest=self.crown_filename,
+            join_a_dest= "crown_id_laser", 
+            t_src= v_mbg, 
+            join_a_src= "crown_id_laser", 
+            a_src=["MBG_Length"],
+            a_dest=["crown_diam"]
+        )
+        arcpy.Delete_management(v_mbg)
+        
+
+    def attr_crownArea(self):
+        """
+        Adds the attribtue 'crown_area' (FLOAT) to the crown feature class. 
+            > Computes the crown area by using the polygon shape area.
+        Adds the attribute 'crown_peri' (FLOAT) to the crown feature class. 
+            > Computes the crown perimeter by using the polygon shape length.
+        """
+        arcpy.AddMessage(f"\tComputing the crown area by using the polygon shape area... ")
+        
+        # Get the linear units of the feature layer's spatial reference
+        linear_units = arcpy.Describe(self.crown_filename).spatialReference.linearUnitName
+
+        # Calculate the area of each feature based on its geometry and write the result to the crown_area field
+        if linear_units == "Meter":
+            arcpy.AddMessage("\tThe linear unit to calculate the area is Meter")
+            expression_area = "float(!SHAPE.area@squaremeters!)"
+            expression_perimeter = "float(!SHAPE.length@meters!)"
+        else:
+            conversion_factor = arcpy.Describe(self.crown_filename).spatialReference.metersPerUnit
+            expression_area = "float(!SHAPE.area@squaremeters!) * {}".format(conversion_factor)
+            expression_perimeter = "float(!SHAPE.length@meters!) * {}".format(conversion_factor)
+
+        arcpy.AddField_management(self.crown_filename, "crown_area", "FLOAT")
+        arcpy.CalculateField_management(self.crown_filename, "crown_area", expression_area)
+
+        # Compute crown perimeter
+        arcpy.AddMessage(f"\tComputing the crown perimeter by using the shape length... ")
+        arcpy.AddMessage(f"\tAdding the attribute <<crown_peri>>... ")
+        arcpy.AddField_management(self.crown_filename, "crown_peri", "FLOAT")
+        arcpy.CalculateField_management(self.crown_filename, "crown_peri", expression_perimeter)
+
+    # join tree crown id. to tree points
+    def join_crownID_toTop(self):
+        """
+        Joins the attribtue 'crown_id_laser' (LONG) to the top feature class. 
+        """
+        
+        # temporary ID for tree points to avoid issues with join_and_copy()
+        arcpy.AddMessage(f"\tAdding a temporary id 'top_id_laser' using ObjectID to tree top feature class... ")
+        arcpy.AddField_management(self.top_filename, "top_id_laser", "LONG") 
+        with arcpy.da.UpdateCursor(self.top_filename, ["OBJECTID", "tmp_id"]) as cursor:
+            for row in cursor:
+                row[1] = row[0]
+                cursor.updateRow(row)    
+        
+
+        arcpy.AddMessage(f"\tJoining the tree crown id 'crown_id_laser' to the tree top feature class... ")
+        v_join = os.path.join(self.path, "join_tmp")
+        arcpy.SpatialJoin_analysis(
+            self.top_filename,
+            self.crown_filename, 
+            v_join,
+            "JOIN_ONE_TO_ONE", 
+            "KEEP_ALL", 
+            match_option="INTERSECT"
+        )
+        
+        # Assign tree crown ID to tree points
+        arcpy.AddField_management(self.top_filename, "crown_id_laser", "LONG")
+        join_and_copy(
+            self.top_filename, 
+            "tmp_id", 
+            v_join, 
+            "tmp_id", 
+            ["crown_id_laser"], 
+            ["crown_id_laser"]
+        )
+
+        arcpy.Delete_management(v_join)
+        #arcpy.DeleteField_management(self.top_filename, "tmp_id")
+        
+        # Copy tree_heigh, tree_altit from tree points to tree polygons
+    def join_topAttr_toCrown(self):
+        """
+        Joins the attribute 'tree_height' (SHORT) to the crown feature class. 
+        Joins the attribute 'tree_altit' (LONG) to the crown feature class. 
+        """
+        
+        arcpy.AddMessage(f"\tJoining the tree top attributes: tree_height and tree_altit to the treecrown polygons... ")
+        arcpy.AddField_management(self.crown_filename, "tree_height", "SHORT")
+        arcpy.AddField_management(self.crown_filename, "tree_altit", "LONG")
+
+        join_and_copy(
+            self.crown_filename, 
+            "crown_id_laser", 
+            self.top_filename, 
+            "crown_id_laser", 
+            ["tree_height", "tree_altit"], 
+            ["tree_height", "tree_altit"]
+        )
+
+
+    def attr_crownVolume(self):
+        """
+        Adds the attribute 'tree_volume' (FlOAT) to the crown feature class. 
+        """
+        # Calculate tree volume
+        formula = str("tree volume =(1/3)π * (crown diameter/2)^2 * tree height")
+        arcpy.AddMessage(f"\tComputing the crown volume by using the formula: \n\t{formula}")
+        
+        arcpy.AddField_management(self.crown_filename, "tree_volume", "FLOAT")
+        arcpy.CalculateField_management(
+        in_table=self.crown_filename,
+        field="tree_volume", 
+        expression="(1.0/3.0) * math.pi * ( !crown_diam! /2.0 ) * ( !crown_diam! /2.0) * float(!tree_height!)",
+        expression_type="PYTHON_9.3", 
+        code_block=""
+    )
+# ------------------------------------------------------ #
+# Class "LaserAttributes"
+# ------------------------------------------------------ #
+
 
 # ------------------------------------------------------ #
-# Add attributes related to bykrest/bedel in "cal attr. "
+# Class "LaserAttributes"
 # ------------------------------------------------------ #
-
-
-# Add LiDAR information
-def attr_lidarTile(layer, tile_code):
-    format_tile_code = str(tile_code[:3] + "_" + tile_code[4:])
-
-    arcpy.AddMessage(f"\t\tAdding the attribute <<lidar_tile>> with the corresponding tile code: {format_tile_code}... ")
-    # Store information on neighbourhood code
-    arcpy.AddField_management(layer, "lidar_tile", "TEXT")
-    arcpy.CalculateField_management(layer, "lidar_tile", format_tile_code)
-    
-    # Delete useless attributes
-    arcpy.DeleteField_management(
-        layer, 
-        ["Id", "gridcode", "ORIG_FID"]
-    )
-    
-
-# Assign a unique ID to each tree polygon
-def attr_crownID(v_treecrown_result):
-    arcpy.AddMessage(f"\tAdding the attribute <<crown_id_laser>> using the unique ObjectID number... ")
-
-    arcpy.AddField_management(v_treecrown_result, "crown_id_laser", "LONG")
-    
-    with arcpy.da.UpdateCursor(v_treecrown_result, ["OBJECTID", "crown_id_laser"]) as cursor:
-        for row in cursor:
-            row[1] = row[0]
-            cursor.updateRow(row)
-    #arcpy.CalculateField_management(v_treecrown_result, "crown_id_laser", "SHAPE@OID")
-
-
-
-# Calculate crown diameter as maximum length of convex hull, 
-# Not as diameter of Minimum Bounding Geometr which might lead to unrealistic estimates
-def attr_crownArea(v_treecrown_result, output_path):
-
-    arcpy.AddMessage(f"\tComputing the crown diameter as maximum length of the convex hull... ")
-    v_mbg = os.path.join(output_path, "mbg_temp")
-    arcpy.MinimumBoundingGeometry_management(
-        v_treecrown_result,
-        v_mbg,
-        "CONVEX_HULL", # tree_detection_v1 uses "CIRCLE"
-        "NONE", 
-        "", 
-        "MBG_FIELDS"
-    )
-    
-    arcpy.AddMessage(f"\tAdding the attribute <<crown_diam>>... ")
-    arcpy.AddField_management(v_treecrown_result, "crown_diam", "FLOAT")
-    join_and_copy(t_dest=v_treecrown_result,
-                  join_a_dest= "crown_id_laser", 
-                  t_src= v_mbg, 
-                  join_a_src= "crown_id_laser", 
-                  a_src=["MBG_Length"],
-                  a_dest=["crown_diam"]
-                  )
-    arcpy.Delete_management(v_mbg)
-
-    # Compute crown area 
-    arcpy.AddMessage(f"\tComputing the crown area by using the polygon shape area... ")
-    arcpy.AddMessage(f"\tAdding the attribute <<crown_area>>... ")
-    
-    # Get the linear units of the feature layer's spatial reference
-    linear_units = arcpy.Describe(v_treecrown_result).spatialReference.linearUnitName
-
-    # Calculate the area of each feature based on its geometry and write the result to the crown_area field
-    if linear_units == "Meter":
-        arcpy.AddMessage("\tThe linear unit to calculate the area is Meter")
-        expression_area = "float(!SHAPE.area@squaremeters!)"
-        expression_perimeter = "float(!SHAPE.length@meters!)"
-    else:
-        conversion_factor = arcpy.Describe(v_treecrown_result).spatialReference.metersPerUnit
-        expression_area = "float(!SHAPE.area@squaremeters!) * {}".format(conversion_factor)
-        expression_perimeter = "float(!SHAPE.length@meters!) * {}".format(conversion_factor)
-
-
-
-    
-    arcpy.AddField_management(v_treecrown_result, "crown_area", "FLOAT")
-    arcpy.CalculateField_management(v_treecrown_result, "crown_area", expression_area)
-
-    # Compute crown perimeter
-    arcpy.AddMessage(f"\tComputing the crown perimeter by using the shape length... ")
-    arcpy.AddMessage(f"\tAdding the attribute <<crown_peri>>... ")
-    arcpy.AddField_management(v_treecrown_result, "crown_peri", "FLOAT")
-    arcpy.CalculateField_management(v_treecrown_result, "crown_peri", expression_perimeter)
-
-
-
-# join tree crown attr. to tree points
-def polygonAttr_toPoint(v_treetop_result, v_treecrown_result, output_path):
-    
-    
-    # temporary ID for tree points to avoid issues with join_and_copy()
-    arcpy.AddMessage(f"\tAdding a temporary treetop id using ObjectID... ")
-
-    arcpy.AddField_management(v_treetop_result, "tmp_id", "LONG") 
-    
-    with arcpy.da.UpdateCursor(v_treetop_result, ["OBJECTID", "tmp_id"]) as cursor:
-        for row in cursor:
-            row[1] = row[0]
-            cursor.updateRow(row)    
-    
-    
-    #arcpy.CalculateField_management(v_treetop_result, "tmp_id", '[OBJECTID]')
-
-    arcpy.AddMessage(f"\tJoining the tree crown attributes: crown_id_laser, crown_diam, crown_area, crown_peri to the treetop points... ")
-    v_join = os.path.join(output_path, "join_tmp")
-    arcpy.SpatialJoin_analysis(
-        v_treetop_result,
-        v_treecrown_result, 
-        v_join,
-        "JOIN_ONE_TO_ONE", 
-        "KEEP_ALL", 
-        match_option="INTERSECT"
-    )
-    
-    # Assign tree crown ID to tree points
-    arcpy.AddField_management(v_treetop_result, "crown_id_laser", "LONG")
-    join_and_copy(
-        v_treetop_result, 
-        "tmp_id", 
-        v_join, 
-        "tmp_id", 
-        ["crown_id_laser"], 
-        ["crown_id_laser"]
-    )
-
-    arcpy.Delete_management(v_join)
-    arcpy.DeleteField_management(v_treetop_result, "tmp_id")
-
-    # Copy crown_diam, crown_area, crown_peri from tree polygons to tree points
-    arcpy.AddField_management(v_treetop_result, "crown_diam", "FLOAT")
-    arcpy.AddField_management(v_treetop_result, "crown_area", "FLOAT")
-    arcpy.AddField_management(v_treetop_result, "crown_peri", "FLOAT")
-
-    join_and_copy(
-        v_treetop_result, 
-        "crown_id_laser", 
-        v_treecrown_result, 
-        "crown_id_laser", 
-        ["crown_diam", "crown_area", "crown_peri"], 
-        ["crown_diam", "crown_area", "crown_peri"]
-    )
-
-
-# Copy tree_heigh, tree_altit from tree points to tree polygons
-def pointAttr_toPolygon(v_treecrown_result,v_treetop_result):
-    
-    arcpy.AddMessage(f"\tJoining the tree top attributes: tree_height and tree_altit to the treecrown polygons... ")
-    arcpy.AddField_management(v_treecrown_result, "tree_height", "SHORT")
-    arcpy.AddField_management(v_treecrown_result, "tree_altit", "LONG")
-
-    join_and_copy(
-    v_treecrown_result, 
-    "crown_id_laser", 
-    v_treetop_result, 
-    "crown_id_laser", 
-    ["tree_height", "tree_altit"], 
-    ["tree_height", "tree_altit"]
-)
-
-
-# Compute tree volume for each tree crown using the formula 
-# tree volume =(1/3)π * (crown diameter/2)^2 * tree height
-
-def attr_crownVolume(layer):
-    # Calculate tree volume
-    
-    formula = str("tree volume =(1/3)π * (crown diameter/2)^2 * tree height")
-    arcpy.AddMessage(f"\tComputing the crown volume by using the formula: \n\t{formula}")
-    
-    arcpy.AddField_management(layer, "tree_volum", "FLOAT")
-    arcpy.CalculateField_management(
-    in_table=layer,
-    field="tree_volume", 
-    expression="(1.0/3.0) * math.pi * ( !crown_diam! /2.0 ) * ( !crown_diam! /2.0) * float(!tree_height!)",
-    expression_type="PYTHON_9.3", 
-    code_block=""
-)
-
-
-
-

@@ -7,6 +7,15 @@
 # Dependencies: ArcGIS Pro 3.0, 3D analyst, image analyst, spatial analyst
 # ---------------------------------------------------------------------------
 
+# ------------------------------------------------------ #
+# TODO - buildt in good practices
+# top = treetop (vector pnt)
+# crown = treecrown (vector polygon)
+# stem = treestem (vector pnt)
+# create (_temp) temprorary files in functions  
+# organise modules by use 
+# ------------------------------------------------------ #
+
 # Import modules
 import arcpy
 from arcpy import env
@@ -19,7 +28,7 @@ import datetime
 #from utils.control import Log
 import tree
 import selectArea
-import computeAttribute
+from computeAttribute import LaserAttributes
 
 # set the municipality (kommune) to be analyzed
 kommune = "bodo"
@@ -94,11 +103,11 @@ processed_data_path = os.path.join(DATA_PATH, kommune, "processed")
 
 # specific file paths
 lidar_path = os.path.join(interim_data_path, "lidar")
-admin_data_path = os.path.join(interim_data_path, kommune + "_AdminData.gdb")
+admin_data_path = os.path.join(interim_data_path, kommune + "_admin.gdb")
 study_area_path = os.path.join(admin_data_path, "analyseomrade")
-output_path = os.path.join(processed_data_path, kommune + "_Laser_ByTre.gdb")
-v_tree_poly_merge = os.path.join(output_path, "treecrown_poly_merge")
-v_tree_pnt_merge = os.path.join(output_path, "treetop_pnt_merge")
+laser_trees_path = os.path.join(interim_data_path, kommune + "_laser_trees.gdb")
+v_crown_merge = os.path.join(laser_trees_path, "crown_merge")
+v_top_merge = os.path.join(laser_trees_path, "top_merge")
 
 
 #------------------------------------------------------ #
@@ -116,7 +125,7 @@ arcpy.AddMessage("municipality:\t\t\t" + kommune)
 arcpy.AddMessage("spatial reference:\t\t"+ spatial_reference)
 arcpy.AddMessage("RGB image available:\t\t"+ str(rgb_is_available))
 arcpy.AddMessage("Vegetation Classes available:\t"+ str(veg_is_available))
-arcpy.AddMessage("Output FileGDB:\t\t\t"+ str(os.path.basename(output_path)))
+arcpy.AddMessage("Output FileGDB:\t\t\t"+ str(os.path.basename(laser_trees_path)))
 arcpy.AddMessage("-"*100)
 
 #------------------------------------------------------ #
@@ -136,18 +145,19 @@ arcpy.AddMessage("Step 1: Detecting tree polygons and points per las tile")
 arcpy.AddMessage("-"*100)
 
 
-if not arcpy.Exists(v_tree_pnt_merge) or not arcpy.Exists(v_tree_poly_merge):
+if not arcpy.Exists(v_top_merge) or not arcpy.Exists(v_crown_merge):
 
     # Iterate over tile (here the 5000 maplist is used for the tilecode, each las dataset contains all .las files within the tilecode)
-    list_tree_pnt_names = []
-    list_tree_poly_names = []  
+    list_tree_top_names = []
+    list_tree_crown_names = []  
 
     # List the subdirectories in the folder
-    tile_list = [f.name for f in os.scandir(lidar_path) if f.is_dir()]
+    tile_list = [f.name for f in os.scandir(lidar_path) if f.is_dir() and not f.name.endswith('.gdb')]
     n_tiles = len([f for f in os.listdir(lidar_path) if os.path.isdir(os.path.join(lidar_path, f))])
 
     arcpy.AddMessage("In {} kommune {} tiles (5000 maplist) are processed:\n".format(kommune,n_tiles))
     arcpy.AddMessage(tile_list)
+    print(tile_list)
 
     
     # Detect trees per tile in tile_list
@@ -160,13 +170,15 @@ if not arcpy.Exists(v_tree_pnt_merge) or not arcpy.Exists(v_tree_poly_merge):
         l_las_folder = r"lidar\{}".format(tile_code) # IF NECESSARY, CHANGE PATH TO .las FILES
         d_las = os.path.join(lidar_path, "tile_" + tile_code + ".lasd")
 
+ 
         filegdb_name = "tree_segmentation_" + tile_code 
-        if arcpy.Exists(os.path.join(interim_data_path, filegdb_name + ".gdb")):
+        filegdb_path = os.path.join(lidar_path, filegdb_name + ".gdb")
+        if arcpy.Exists(filegdb_path):
             arcpy.AddMessage("\tFileGDB {} already exists. Continue...".format(filegdb_name))
         else:
-            arcpy.management.CreateFileGDB(interim_data_path, filegdb_name)
+            arcpy.management.CreateFileGDB(lidar_path, filegdb_name)
 
-        prefix = os.path.join(interim_data_path, filegdb_name + ".gdb", "tile_" + tile_code)
+        prefix = os.path.join(lidar_path, filegdb_name + ".gdb", "tile_" + tile_code)
 
         # ------------------------------------------------------ #
         # Dynamic Path Variables  
@@ -195,14 +207,14 @@ if not arcpy.Exists(v_tree_pnt_merge) or not arcpy.Exists(v_tree_poly_merge):
         # identify tree tops 
         r_focflow = os.path.join(prefix + "_016_focflow_temp") # temporary file
         r_focflow_01 = os.path.join(prefix + "_016_focflow_01_temp") # temporary file
-        v_treetop_poly = os.path.join(prefix + "_016_treetop_poly_temp") # temporary file
-        v_treetop_singlepoly = os.path.join(prefix + "_016_treetop_singlepoly_temp") # temporary file
-        v_treetop_pnt = os.path.join(prefix + "_016_treetop_pnt_temp")
-        v_tree_pnt = os.path.join(prefix + "_016_treetop_pnt") # tree points in study area 
+        v_top_poly = os.path.join(prefix + "_016_top_poly_temp") # temporary file
+        v_top_singlepoly = os.path.join(prefix + "_016_top_singlepoly_temp") # temporary file
+        v_top_pnt = os.path.join(prefix + "_016_all_tops_temp") # temporary file containing all points 
+        v_top_1to1 = os.path.join(prefix + "_016_top_1to1") # contains ONLY points that intersect with tree crowns 
 
         # identify tree crowns 
-        v_treecrown_poly = os.path.join(prefix + "_017_treecrown_poly_temp") # old name v_watersheds
-        v_tree_poly = os.path.join(prefix + "_017_treecrown_poly") # trees polygons in study area 
+        v_crown_poly = os.path.join(prefix + "_017_all_crowns_temp") # old name v_watersheds (temporary file containing all points )
+        v_crown_1to1 = os.path.join(prefix + "_017_crown_1to1") # contains ONLY crowns that intersect with a treetop
 
         # ------------------------------------------------------ #
         # 1.1 Create LAS Dataset
@@ -345,17 +357,17 @@ if not arcpy.Exists(v_tree_pnt_merge) or not arcpy.Exists(v_tree_poly_merge):
         try:        
             arcpy.AddMessage("\t1.6 Identify Tree Tops  ")
             start_time1 = time.time()
-            if arcpy.Exists(v_treetop_pnt):
+            if arcpy.Exists(v_top_pnt):
                 arcpy.AddMessage("\t\tThe treetop vector for tile <<{}>> exists in database. Continue ...".format(tile_code))
             else: 
                 # nested function to identify treeTops
-                tree.identify_treeTops(r_sinks, r_focflow, v_treetop_poly,v_treetop_singlepoly, r_chm_h, r_dsm, v_treetop_pnt)
+                tree.identify_treeTops(r_sinks, r_focflow, v_top_poly,v_top_singlepoly, r_chm_h, r_dsm, v_top_pnt)
                 end_time1(start_time1)
         except Exception as e:
             # catch any exception and print error message. 
             arcpy.AddMessage(f"\t\tERROR: {e}. \nContinue...")
         
-        list_tree_pnt_names.append(v_treetop_pnt)
+        #list_tree_top_names.append(v_top_pnt)
 
         # ------------------------------------------------------ #
         #  1.7 IDENTIFY TREE CROWNS
@@ -364,69 +376,53 @@ if not arcpy.Exists(v_tree_pnt_merge) or not arcpy.Exists(v_tree_poly_merge):
 
         arcpy.AddMessage("\t1.7 Identify Tree Crowns ")
         start_time1 = time.time()
-        if arcpy.Exists(v_treecrown_poly):
+        if arcpy.Exists(v_crown_poly):
                 arcpy.AddMessage("\t\tThe tree crown vector for tile <<{}>> exists in database. Continue ...".format(tile_code))
         else: 
-            tree.identify_treeCrowns(r_watersheds,v_treecrown_poly)
+            tree.identify_treeCrowns(r_watersheds,v_crown_poly)
             end_time1(start_time1)
 
 
         
         # adding lidar info to attr. 
-        computeAttribute.attr_lidarTile(v_treetop_pnt, tile_code)
-        computeAttribute.attr_lidarTile(v_treecrown_poly, tile_code)
+        #computeAttribute.attr_lidarTile(v_top_pnt, tile_code)
+        laser_tile = LaserAttributes(filegdb_path, v_crown_poly, v_top_pnt)
+        laser_tile.attr_lidarTile(tile_code)
 
         # ------------------------------------------------------ #
-        # 1.8 Add the selected tree top and crown layers to the list
+        # 1.8 TOPOLOGY CHECK - ONLY ONE POINT WITHIN A POLYGON 
         #     Select only tree points within neighbourhood (old 1.20)
         #     Select only tree polygons within neighbourhood (i.e., the ones that intersect with tree tops) (old 1.21)
         #     STEP 1.8 NOT NECESSARY already selected by study area by using Extract by Mask in CHM and vegetation mask     
         # ------------------------------------------------------ #
-
-         # ------------------------------------------------------ #
-        # 12 Select only tree polygons within neighbourhood (i.e., the ones that intersect with tree tops)
+        arcpy.AddMessage("\t1.8 Topology check - one pnt within a polygon")
+        arcpy.AddMessage("\t\tSelecting only treecrown polygons that intersect with treetop point ...")
+        
+        
+        input_tree = v_crown_poly
+        #tmp_lyr_name = "tmp_treecrown_lyr"
+        selecting_tree = v_top_pnt
+        output_tree = v_crown_1to1
+        tree.topology_crownTop(input_tree,selecting_tree,output_tree)
+        
+        arcpy.AddMessage("\t\tSelecting only treetop points that intersect with treecrown polygons ...")
+         
+        
+        input_tree = v_top_pnt
+        #tmp_lyr_name = "tmp_treetop_lyr"
+        selecting_tree = v_crown_1to1
+        output_tree = v_top_1to1
+        tree.topology_crownTop(input_tree,selecting_tree,output_tree)
+        
         # ------------------------------------------------------ #
-        arcpy.AddMessage("\t\tEnsuring that each treecrown polygon contains one treetop point ...")
-        
-        l_tree_poly = arcpy.MakeFeatureLayer_management(
-            v_treecrown_poly, 
-            "treecrown_poly_lyr"
-        )
-        
-        arcpy.SelectLayerByLocation_management(
-            l_tree_poly, 
-            "INTERSECT",
-            v_treetop_pnt,
-            "",
-            "NEW_SELECTION"
-        )
+        #  1.9 LIST ALL TOP PNTS AND CROWN POLYGONS 
+        # ------------------------------------------------------ #
+        arcpy.AddMessage("\t1.9 List all top pnts and crown polygons")
+        arcpy.AddMessage("\t\tAppending all treecrowns to list_tree_crown_names ...")
+        list_tree_crown_names.append(v_crown_1to1)
+        arcpy.AddMessage("\t\tAppending all treetops to list_tree_top_names ...")
+        list_tree_top_names.append(v_top_1to1)
 
-        arcpy.CopyFeatures_management(
-            in_features = l_tree_poly,
-            out_feature_class = v_tree_poly
-        )
-        
-        
-        l_tree_pnt = arcpy.MakeFeatureLayer_management(
-            v_treetop_pnt, 
-            "treetop_pnt_lyr"
-        )
-        
-        arcpy.SelectLayerByLocation_management(
-            l_tree_pnt, 
-            "INTERSECT",
-            v_tree_poly,
-            "",
-            "NEW_SELECTION"
-        )
-
-        arcpy.CopyFeatures_management(
-            in_features = l_tree_pnt,
-            out_feature_class = v_tree_pnt
-        )
-        #arcpy.Delete_management(v_watersheds)
-        list_tree_poly_names.append(v_tree_poly)
-        list_tree_pnt_names.append(v_tree_pnt)
         arcpy.AddMessage("\t---------------------")
         #break 
 
@@ -438,24 +434,24 @@ if not arcpy.Exists(v_tree_pnt_merge) or not arcpy.Exists(v_tree_poly_merge):
     arcpy.AddMessage("-"*100)
     
     start_time1 = time.time()
-    if arcpy.Exists(v_tree_pnt_merge):
+    if arcpy.Exists(v_top_merge):
         arcpy.AddMessage(f"\t\tThe thee top layers for the different tiles are already merged. \n\t\tThe merged file is located in {kommune}_Laser_ByTre.gdb. Continue ...")
     else:
         arcpy.AddMessage("\t\tMerge tree tops for all tiles into one polygon file.")
         arcpy.Merge_management(
-            inputs = list_tree_pnt_names,
-            output = v_tree_pnt_merge
+            inputs = list_tree_top_names,
+            output = v_top_merge
         )
         end_time1(start_time1) 
 
     start_time1 = time.time()
-    if arcpy.Exists(v_tree_poly_merge):
+    if arcpy.Exists(v_crown_merge):
         arcpy.AddMessage(f"\t\tThe thee crown layers for the different tiles are already merged. \n\t\tThe merged file is located in {kommune}_Laser_ByTre.gdb. Continue ...")
     else:
         arcpy.AddMessage("\t\tMerge tree crowns for all tiles into one polygon file.")
         arcpy.Merge_management(
-            inputs = list_tree_poly_names,
-            output = v_tree_poly_merge
+            inputs = list_tree_crown_names,
+            output = v_crown_merge
         )
         end_time1(start_time1)  
     
@@ -466,6 +462,8 @@ else:
     
     # ------------------------------------------------------ #
     # 3. Select trees outside buildings and sea
+    # TODO move to separate file (identify false detections)
+    # add more 4.5 IDENTIFY FALSE DETECTIONS (v2!)
     # ------------------------------------------------------ #
     arcpy.AddMessage("-"*100)
     arcpy.AddMessage("Step 3: Selecting trees outside buildings and sea...")
@@ -473,54 +471,84 @@ else:
     
     # select tree points 
     start_time1 = time.time()
-    v_treetop_result = os.path.join(output_path, "treetop_pnt")
-    v_treecrown_result = os.path.join(output_path, "treecrown_poly")
+    v_top_mask = os.path.join(laser_trees_path, "top_mask") 
+    v_crown_mask = os.path.join(laser_trees_path, "crown_mask") 
     
-    if arcpy.Exists(v_treetop_result) and arcpy.Exists(v_treecrown_result):
+    if arcpy.Exists(v_top_mask) and arcpy.Exists(v_crown_mask):
         arcpy.AddMessage(f"\tThe treetops and treecrowns are already masked for false trees within building and water areas. Continue ...")
     else:
         
         # mask tree tops 
         arcpy.AddMessage(f"\tThe tree tops are masked for false trees within building and water areas...")
-        selected_trees = os.path.join(output_path, "treetop_pnt")
+        selected_trees = v_top_mask # TODO better name masked_trees?
         
         # TODO ADD IF EXISTS to vsea and vbuilding 
         v_sea = selectArea.select_sea(FKB_WATER_PATH, study_area_path, admin_data_path)
         v_building = selectArea.select_building(FKB_BUILDING_PATH, study_area_path, admin_data_path)
-        v_treetop_result = selectArea.mask_tree(v_tree_pnt_merge, v_building,v_sea,selected_trees)
+        v_top_mask = selectArea.mask_tree(v_top_merge, v_building,v_sea,selected_trees)
         
         
-        #mask tree crowns
+        # mask tree crowns
         arcpy.AddMessage(f"\tThe tree crowns are masked for false trees within building and water areas...")
-
-        selected_trees = os.path.join(output_path, "treecrown_poly")
-        v_treecrown_result = selectArea.mask_tree(v_tree_poly_merge, v_building,v_sea,selected_trees)
+        selected_trees = v_crown_mask
+        v_crown_mask = selectArea.mask_tree(v_crown_merge, v_building,v_sea,selected_trees)
         
+        
+        
+        
+        
+        #TODO ESNURE tree_poly == tree_point
+        arcpy.AddMessage("\tEnsuring that each treecrown polygon contains one treetop point ...")
+        arcpy.AddMessage("\t\tSelecting only treetop points that intersect with treecrown polygons ...")
+        v_top_mask_1to1 = os.path.join(laser_trees_path, "top_1to1")
+        v_crown_mask_1to1 = os.path.join(laser_trees_path, "crown_1to1")
+
+        input_tree = v_top_mask
+        #tmp_lyr_name = "tmp_treetop_lyr2"
+        selecting_tree = v_crown_mask
+        output_tree = v_top_mask_1to1
+        tree.topology_crownTop(input_tree, selecting_tree,output_tree)
+        
+        input_tree = v_crown_mask
+        #tmp_lyr_name = "tmp_treecrown_lyr2"
+        selecting_tree = v_top_mask_1to1
+        output_tree = v_crown_mask_1to1
+        tree.topology_crownTop(input_tree, selecting_tree,output_tree)
 
         #arcpy.Delete_management(v_sea)
         #arcpy.Delete_management(v_building)
                                                
                                                
     # ------------------------------------------------------ #
-    # 4. Compute additional attributes
+    # 4. Compute additional laser attributes
+    # TODO move this step to main.py to separate file and compute all 
     # ------------------------------------------------------ #
     arcpy.AddMessage("-"*100)
-    arcpy.AddMessage("Step 4: Computing additional attributes...") 
+    arcpy.AddMessage("Step 4: Computing additional laser attributes...") 
     arcpy.AddMessage("-"*100)
     
     # TODO check all attributes
-    computeAttribute.attr_crownID(v_treecrown_result)
-    computeAttribute.attr_crownArea(v_treecrown_result, output_path)
-    computeAttribute.polygonAttr_toPoint(v_treetop_result, v_treecrown_result, output_path)
-    computeAttribute.pointAttr_toPolygon(v_treecrown_result,v_treetop_result)
-    computeAttribute.attr_crownVolume(v_treecrown_result)
-    computeAttribute.attr_crownVolume(v_treetop_result)
+    
+    laser_trees = LaserAttributes(laser_trees_path, v_crown_mask_1to1, v_top_mask_1to1)
+    laser_trees.attr_crownID()
+    laser_trees.attr_crownDiam()
+    laser_trees.attr_crownArea()
+    laser_trees.join_crownID_toTop()
+    laser_trees.join_topAttr_toCrown()
+    laser_trees.attr_crownVolume()
+    
+    #computeAttribute.attr_crownID(v_crown_mask_1to1)
+    #computeAttribute.attr_crownArea(v_crown_mask_1to1, laser_trees_path)
+    #computeAttribute.polygonAttr_toPoint(v_top_mask_1to1, v_crown_mask_1to1, laser_trees_path)
+    #computeAttribute.pointAttr_toPolygon(v_crown_mask_1to1,v_top_mask_1to1)
+    #computeAttribute.attr_crownVolume(v_crown_mask_1to1)
+    #computeAttribute.attr_crownVolume(v_top_mask_1to1)
 
 
-    #arcpy.Delete_management(v_tree_poly_merge)
-    #arcpy.Delete_management(v_tree_pnt_merge)
+    #arcpy.Delete_management(v_crown_merge)
+    #arcpy.Delete_management(v_top_merge)
 end_time0 = time.time()
 execution_time0 = (end_time0 - start_time0)/60
 arcpy.AddMessage("TOTAL TIME:\t {:.2f} min".format(execution_time0))
 
-# TODO 4.5 IDENTIFY FALSE DETECTIONS (v2!)
+

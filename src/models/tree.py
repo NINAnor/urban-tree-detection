@@ -422,9 +422,32 @@ def identify_treeCrowns(r_watersheds, v_treecrown_poly):
     
     return v_treecrown_poly
 
+# ------------------------------------------------------ #
+#  1.8 
+# ------------------------------------------------------ #
 
 
+def topology_crownTop(input_tree, selecting_tree, output_tree):
+    input_tree_lyr = arcpy.MakeFeatureLayer_management(
+        input_tree, 
+        "temp_lyr" # tmp_lyr_name,
+        )
 
-   
+    arcpy.SelectLayerByLocation_management(
+        input_tree_lyr, 
+        "INTERSECT",
+        selecting_tree,
+        "",
+        "NEW_SELECTION"
+        )
+
+    arcpy.CopyFeatures_management(
+        in_features = input_tree_lyr,
+        out_feature_class = output_tree
+        )
+    
+    return output_tree
+
+
 
 
