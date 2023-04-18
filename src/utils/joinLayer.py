@@ -1,7 +1,19 @@
 import arcpy
 
+         
+
 # Join "source_table" to "destination table" and copy attributes from "source table" to attributes in "destination table"
-def join_and_copy(t_dest, join_a_dest, t_src, join_a_src, a_src, a_dest):
+def join_and_copy(t_dest:str, join_a_dest:str, t_src:str, join_a_src:str, a_src:list, a_dest:list):
+    """_summary_
+
+    Args:
+        t_dest (str): destinatation table (in_table)
+        join_a_dest (str): destination field (in_field)
+        t_src (str): source table (join_table)
+        join_a_src (str): source field (join_field)
+        a_src (list): source list of fields (join_field_list)
+        a_dest (str): destination list of fields (in_field_list)
+    """ 
      
     name_dest = arcpy.Describe(t_dest).name
     name_src = arcpy.Describe(t_src).name
@@ -22,8 +34,7 @@ def join_and_copy(t_dest, join_a_dest, t_src, join_a_src, a_src, a_dest):
             l_dest, 
             name_dest + "." + dest_field, 
             "!" + name_src + "." + src_field + "!"
-        )
-              
+        )  
 
 # =========================== #
 # Join table 2 to table 1 and copy source field from table 2 to destination field of table 1

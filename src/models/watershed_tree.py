@@ -29,6 +29,7 @@ import datetime
 import tree
 import selectArea
 from computeAttribute import LaserAttributes
+from src import createGDB_ifNotExists
 
 # set the municipality (kommune) to be analyzed
 kommune = "bodo"
@@ -103,9 +104,14 @@ processed_data_path = os.path.join(DATA_PATH, kommune, "processed")
 
 # specific file paths
 lidar_path = os.path.join(interim_data_path, "lidar")
+
+# admin GDB
 admin_data_path = os.path.join(interim_data_path, kommune + "_admin.gdb")
 study_area_path = os.path.join(admin_data_path, "analyseomrade")
+
+# laser segmented trees GDB
 laser_trees_path = os.path.join(interim_data_path, kommune + "_laser_trees.gdb")
+createGDB_ifNotExists(laser_trees_path)
 v_crown_merge = os.path.join(laser_trees_path, "crown_merge")
 v_top_merge = os.path.join(laser_trees_path, "top_merge")
 
@@ -170,15 +176,10 @@ if not arcpy.Exists(v_top_merge) or not arcpy.Exists(v_crown_merge):
         l_las_folder = r"lidar\{}".format(tile_code) # IF NECESSARY, CHANGE PATH TO .las FILES
         d_las = os.path.join(lidar_path, "tile_" + tile_code + ".lasd")
 
- 
-        filegdb_name = "tree_segmentation_" + tile_code 
-        filegdb_path = os.path.join(lidar_path, filegdb_name + ".gdb")
-        if arcpy.Exists(filegdb_path):
-            arcpy.AddMessage("\tFileGDB {} already exists. Continue...".format(filegdb_name))
-        else:
-            arcpy.management.CreateFileGDB(lidar_path, filegdb_name)
+        filegdb_path = os.path.join(lidar_path, "tree_segmentation_" + tile_code + ".gdb")     
+        createGDB_ifNotExists(filegdb_path)
 
-        prefix = os.path.join(lidar_path, filegdb_name + ".gdb", "tile_" + tile_code)
+        prefix = os.path.join(filegdb_path, "tile_" + tile_code)
 
         # ------------------------------------------------------ #
         # Dynamic Path Variables  
@@ -397,22 +398,10 @@ if not arcpy.Exists(v_top_merge) or not arcpy.Exists(v_crown_merge):
         # ------------------------------------------------------ #
         arcpy.AddMessage("\t1.8 Topology check - one pnt within a polygon")
         arcpy.AddMessage("\t\tSelecting only treecrown polygons that intersect with treetop point ...")
-        
-        
-        input_tree = v_crown_poly
-        #tmp_lyr_name = "tmp_treecrown_lyr"
-        selecting_tree = v_top_pnt
-        output_tree = v_crown_1to1
-        tree.topology_crownTop(input_tree,selecting_tree,output_tree)
+        tree.topology_crownTop(v_crown_poly,v_top_pnt,v_crown_1to1)
         
         arcpy.AddMessage("\t\tSelecting only treetop points that intersect with treecrown polygons ...")
-         
-        
-        input_tree = v_top_pnt
-        #tmp_lyr_name = "tmp_treetop_lyr"
-        selecting_tree = v_crown_1to1
-        output_tree = v_top_1to1
-        tree.topology_crownTop(input_tree,selecting_tree,output_tree)
+        tree.topology_crownTop(v_top_pnt,v_crown_1to1,v_top_1to1)
         
         # ------------------------------------------------------ #
         #  1.9 LIST ALL TOP PNTS AND CROWN POLYGONS 
@@ -473,8 +462,10 @@ else:
     start_time1 = time.time()
     v_top_mask = os.path.join(laser_trees_path, "top_mask") 
     v_crown_mask = os.path.join(laser_trees_path, "crown_mask") 
+    v_top_mask_1to1 = os.path.join(laser_trees_path, "top_1to1")
+    v_crown_mask_1to1 = os.path.join(laser_trees_path, "crown_1to1")
     
-    if arcpy.Exists(v_top_mask) and arcpy.Exists(v_crown_mask):
+    if arcpy.Exists(v_top_mask_1to1) and arcpy.Exists(v_crown_mask_1to1):
         arcpy.AddMessage(f"\tThe treetops and treecrowns are already masked for false trees within building and water areas. Continue ...")
     else:
         
@@ -492,31 +483,15 @@ else:
         arcpy.AddMessage(f"\tThe tree crowns are masked for false trees within building and water areas...")
         selected_trees = v_crown_mask
         v_crown_mask = selectArea.mask_tree(v_crown_merge, v_building,v_sea,selected_trees)
-        
-        
-        
-        
-        
-        #TODO ESNURE tree_poly == tree_point
-        arcpy.AddMessage("\tEnsuring that each treecrown polygon contains one treetop point ...")
+
         arcpy.AddMessage("\t\tSelecting only treetop points that intersect with treecrown polygons ...")
-        v_top_mask_1to1 = os.path.join(laser_trees_path, "top_1to1")
-        v_crown_mask_1to1 = os.path.join(laser_trees_path, "crown_1to1")
+        tree.topology_crownTop(v_top_mask, v_crown_mask,v_top_mask_1to1) 
+        arcpy.AddMessage("\tEnsuring that each treecrown polygon contains one treetop point ...")
+        tree.topology_crownTop(v_crown_mask, v_top_mask_1to1,v_crown_mask_1to1)
 
-        input_tree = v_top_mask
-        #tmp_lyr_name = "tmp_treetop_lyr2"
-        selecting_tree = v_crown_mask
-        output_tree = v_top_mask_1to1
-        tree.topology_crownTop(input_tree, selecting_tree,output_tree)
-        
-        input_tree = v_crown_mask
-        #tmp_lyr_name = "tmp_treecrown_lyr2"
-        selecting_tree = v_top_mask_1to1
-        output_tree = v_crown_mask_1to1
-        tree.topology_crownTop(input_tree, selecting_tree,output_tree)
-
-        #arcpy.Delete_management(v_sea)
-        #arcpy.Delete_management(v_building)
+    # TODO delete fkb sea/building to save storage space
+    #arcpy.Delete_management(v_sea)
+    #arcpy.Delete_management(v_building)
                                                
                                                
     # ------------------------------------------------------ #
@@ -537,6 +512,7 @@ else:
     laser_trees.join_topAttr_toCrown()
     laser_trees.attr_crownVolume()
     
+    # TODO Delete if new class LaserAttributes works 
     #computeAttribute.attr_crownID(v_crown_mask_1to1)
     #computeAttribute.attr_crownArea(v_crown_mask_1to1, laser_trees_path)
     #computeAttribute.polygonAttr_toPoint(v_top_mask_1to1, v_crown_mask_1to1, laser_trees_path)
@@ -544,9 +520,6 @@ else:
     #computeAttribute.attr_crownVolume(v_crown_mask_1to1)
     #computeAttribute.attr_crownVolume(v_top_mask_1to1)
 
-
-    #arcpy.Delete_management(v_crown_merge)
-    #arcpy.Delete_management(v_top_merge)
 end_time0 = time.time()
 execution_time0 = (end_time0 - start_time0)/60
 arcpy.AddMessage("TOTAL TIME:\t {:.2f} min".format(execution_time0))
