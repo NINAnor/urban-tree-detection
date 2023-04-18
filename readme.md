@@ -29,8 +29,6 @@ Here are the steps to create a conda env compatible with ArcGIS Pro 3.0.1 and to
 1. Create a new conda environment with the necessary dependencies described in `environment.yml`
     
         cd /d P:\%project_folder%\treeDetection
-        #REMOVE from public README 
-        cd /d P:\152022_itree_eco_ifront_synliggjore_trars_rolle_i_okosyst\treeDetection
         cd ...\urban-treeDetection
         conda env create environment.yml
         conda activate treeDetection
