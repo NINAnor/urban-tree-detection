@@ -1,6 +1,7 @@
-urban-treeDetection
+urban-treeDetection 
 ==============================
 
+**repo-status: work in progress**
 
 This project provides a workflow for preparing an input dataset for i-Tree Eco analysis using a municipal tree dataset supplemented by lidar segmented tree crowns and auxilliary GIS datasets.
 
