@@ -8,10 +8,13 @@ kommune = input("Enter the municipality: ")
 prepare_lidar.main(kommune)
 
 ## PREPARE KOMMUNE DATA
+# check if filgdb exists with layers and fieldnames
+# manualy prepare in arcgis 
+
+
+## RUN SEGMENTATION AND MERGE
 #watershed_tree --> TODO create subproccess function
-
-
-## RUN SEGMENTATION
-
+## MASK BUILDINGS AND SEA AND ADD LIDAR ATTR.
+#watershed_tree --> TODO create subproccess function
 
 ## JOIN

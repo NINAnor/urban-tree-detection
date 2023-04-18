@@ -1,24 +1,19 @@
 
-"""
-The `treeDetection` package provides
+"""Top-level package for treeDetection."""
 
-Submodules:
-- `models`:
-- `utils`: 
-
-Usage:
-To use the `sentiment_analysis` package, simply import it in your Python code as follows:
-    import sentiment_analysis
-
-You can then use the functions and classes provided by the submodules to ... 
-
-
-
-"""
+__author__ = """Willeke A'Campo"""
+__email__ = 'willeke.acampo@nina.com'
+__version__ = '0.1.0'
 
 
 # import specific functions and classes to  
-# they can be imported from other parts of the projects using the syntax "from src import ..."   
+# they can be imported from other parts of the projects using the syntax "from src import ..." 
+from .utils.checkExist import createGDB_ifNotExists
+from .utils.checkExist import fieldExist
+from .utils.checkExist import addField_ifNotExists
+from .utils.checkExist import calculateField_ifEmpty
+from .utils.checkExist import check_isNull
 from .utils.joinLayer import join_and_copy
+
 from .data import prepare_lidar
 #from .models import watershed_tree
