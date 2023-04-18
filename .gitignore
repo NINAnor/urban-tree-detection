@@ -172,10 +172,12 @@ poetry.toml
 # exclude data from source control by default
 /data/*
 !data/.gitkeep 
+!data/municipality
 /tools/*
 # exception to the rule
 !tools/.gitkeep 
 src/data/test/*
+src/data/join_lidar_tree_db/test/*
 src/models/test/*
 src/visualizations/test/
 /test/*
