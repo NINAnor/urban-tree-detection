@@ -177,6 +177,7 @@ poetry.toml
 # exception to the rule
 !tools/.gitkeep 
 src/data/test/*
+src/data/prepare_tree_db/test/*
 src/data/join_lidar_tree_db/test/*
 src/models/test/*
 src/visualizations/test/
