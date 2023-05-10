@@ -10,6 +10,6 @@
     - all names in english 
     - leveranse dataset translated to NORWEGIAN 
     
-
-- YAML/CONFIG/UTILS
-- config.py TODO make a .config pile that loads env var form yaml and dot env 
+- Mover arcpy helper functions to utils/arcpy_utils.py
+- set time functions in sep module: 
+current_datetime = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")

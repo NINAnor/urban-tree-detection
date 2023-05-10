@@ -33,9 +33,11 @@ from src import createGDB_ifNotExists
 
 # set the municipality (kommune) to be analyzed
 kommune = "bodo"
+# TODO move to time_config file
 current_datetime = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
 # ------------------------------------------------------ #
 # Municipality Dependent Parameters  
+# TODO move to config.py
 # ------------------------------------------------------ #
 
 if kommune == "oslo" or "baerum" :

@@ -1,20 +1,19 @@
-
 """Top-level package for treeDetection."""
+# specify module imports here that are used across multiple packages in the project
+# do not specify module imports that are only used in the local subpackages
+# sepecify there imports in their local __init__.py
 
 __author__ = """Willeke A'Campo"""
 __email__ = 'willeke.acampo@nina.com'
 __version__ = '0.1.0'
 
+# Import specific functions and classes
+from src.utils.config import (ADMIN_GDB, AR5_LANDUSE_PATH, DATA_PATH, FKB_BUILDING_PATH,
+                              FKB_WATER_PATH, INTERIM_PATH, IN_SITU_TREES_GDB, LASER_TREES_GDB, MUNICIPALITY,
+                              PROCESSED_PATH, RAW_PATH, SSB_DISTRICT_PATH, SPATIAL_REFERENCE,
+                              URBAN_TREES_GDB)
+from src.utils import arcpy_utils, logger
 
-# import specific functions and classes to  
-# they can be imported from other parts of the projects using the syntax "from src import ..." 
-from src.utils.checkExist import createGDB_ifNotExists, fieldExist, addField_ifNotExists,calculateField_ifEmpty,check_isNull
-#from src.utils.joinLayer import join_and_copy
-from src.utils.logger import setup_logger 
-from src.utils.config import FKB_BUILDING_PATH, FKB_WATER_PATH, SSB_DISTRICT_PATH, AR5_LANDUSE_PATH
-from src.utils.config import DATA_PATH, RAW_PATH, INTERIM_PATH, PROCESSED_PATH
-from src.utils.config import LOG_PATH
-from src.utils.config import MUNICIPALITY, ADMIN_GDB_PATH
-from src.utils.arcpy_utils import reclassify_row, join_and_copy, df_to_lookupDict
-from src import prepare_lidar
-#from .models import watershed_tree
+
+
+
