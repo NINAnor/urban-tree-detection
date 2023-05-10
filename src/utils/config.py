@@ -1,6 +1,10 @@
 import os
-from src.utils.yaml_utils import yaml_load
+from src.utils import yaml_load
 from dotenv import load_dotenv
+
+# --------------------------------------------------------------------------- #
+# Load YAML dictionairy 
+# --------------------------------------------------------------------------- #
 
 # for .env file in USER directory 
 # user_dir = C:\\USERS\\<<firstname.lastname>>
@@ -15,25 +19,39 @@ config_file = os.path.join(LOCAL_GIT, "NINAnor", "urban-treeDetection", "config.
 with open(config_file, 'r') as f:
     config = yaml_load(f)
 
-# Get the municipality from the environment variable or the config file
+# --------------------------------------------------------------------------- #
+# Global path variables
+# --------------------------------------------------------------------------- #
+
+# get municipality (kommune) 
 MUNICIPALITY = config['municipality']
 
-# Define the configuration variables as module-level variables
+# get path to log folder 
+LOG_PATH = os.path.join(LOCAL_GIT, "src", "log")
 
-# static datasets
+# get static datasets
 FKB_BUILDING_PATH = config['paths']['fkb_building']
 FKB_WATER_PATH = config['paths']['fkb_water']
 SSB_DISTRICT_PATH = config['paths']['ssb_district']
 AR5_LANDUSE_PATH = config['paths']['ar5_landuse']
 
-# project data paths 
+# get project data paths 
 DATA_PATH = config['paths']['data_path']
 RAW_PATH = os.path.join(DATA_PATH, MUNICIPALITY, 'raw')
 INTERIM_PATH = os.path.join(DATA_PATH, MUNICIPALITY, 'interim')
 PROCESSED_PATH = os.path.join(DATA_PATH, MUNICIPALITY, 'processed')
 
-# path to folder containg .log files 
-LOG_PATH = os.path.join(LOCAL_GIT, "src", "log")
+# project file gdbs
+ADMIN_GDB = os.path.join(INTERIM_PATH, f"{MUNICIPALITY}_admin.gdb")
+IN_SITU_TREES_GDB = os.path.join(INTERIM_PATH, MUNICIPALITY + "_in_situ_trees.gdb") # municipal tree dataset (stem points)
+LASER_TREES_GDB = os.path.join(INTERIM_PATH, MUNICIPALITY + "_laser_trees.gdb") # segmented laser tree dataset (tree top points, tree crown polygons)
+URBAN_TREES_GDB = os.path.join(PROCESSED_PATH, MUNICIPALITY + "_urban_trees.gdb") # joined tree dataset (input for itree eco)
 
-# path to filegdb containing admin layers for the muncipality (analysis area, etc.)
-ADMIN_GDB_PATH = os.path.join(INTERIM_PATH, f"{MUNICIPALITY}_admin.gdb")
+# --------------------------------------------------------------------------- #
+# Set spatial reference system
+# --------------------------------------------------------------------------- #
+if MUNICIPALITY == "oslo" or "baerum" or "kristiansand":
+    SPATIAL_REFERENCE = config['spatial_reference']['utm32']
+
+if MUNICIPALITY == "bodo" :
+    SPATIAL_REFERENCE = config['spatial_reference']['utm33']

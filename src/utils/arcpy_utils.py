@@ -1,5 +1,10 @@
 """util functions for working with arcpy."""
 import arcpy
+import os
+
+# --------------------------------------------------------------------------- #
+# LOOKUP AND RECLASSIY/RENAME FUNCTIONS
+# --------------------------------------------------------------------------- #
 
 def df_to_lookupDict(df, key, value):
     lookup_dict = {}
@@ -33,10 +38,14 @@ def reclassify_row(fc, field_to_check, field_to_modify, lookup_dict):
     # Print a message indicating the update is complete
     print(f"The rows in <{field_to_modify}> are reclassified.")
     
-    
-# Join "source_table" to "destination table" and copy attributes from "source table" to attributes in "destination table"
+# --------------------------------------------------------------------------- #
+# JOIN FUNCTIONS
+# --------------------------------------------------------------------------- #
+
 def join_and_copy(t_dest:str, join_a_dest:str, t_src:str, join_a_src:str, a_src:list, a_dest:list):
-    """_summary_
+    """ 
+    Join "source_table" to "destination table" and copy attributes from "source table" 
+    to attributes in "destination table".
 
     Args:
         t_dest (str): destinatation table (in_table)
@@ -69,24 +78,127 @@ def join_and_copy(t_dest:str, join_a_dest:str, t_src:str, join_a_src:str, a_src:
         )
 
 # --------------------------------------------------------------------------- #
-# Join table 2 to table 1 and copy src field from table 2 to dest. field in table 1
-# TODO check this function and remove 
+# ifNotExists or ifEmpty FUNCTIONS
 # --------------------------------------------------------------------------- #
 
-def join_and_copy2(target_table, key_target, join_table, key_join, field_list_join, field_list_target):
-     
-    name1 = arcpy.Describe(target_table).name
-    name2 = arcpy.Describe(join_table).name
-     
-    # 1. create layer from target_table
-    layer1 = "table1_lyr"
-    arcpy.MakeFeatureLayer_management(target_table, layer1)
-     
-    # 2. create Join
-    arcpy.AddJoin_management(layer1, key_target, join_table, key_join)
-            
-    i = 0
-    for source_field in field_list_join:
-        arcpy.AddMessage("Copying values from " + name2 +  "." + field_list_join[i] + " to " + name1 + "." + field_list_target[i])
-        arcpy.CalculateField_management(layer1, name1 + "." + field_list_target[i], "[" + name2 + "." + field_list_join[i] + "]")
-        i = i+1
+def createGDB_ifNotExists(filegdb_path:str):
+    """
+    Checks if a fileGDB exists and if not creates this fileGDB
+    
+    Args:
+        filegdb_path (str): path to the fileGDB
+    """
+    filegdb_name = os.path.basename(filegdb_path)
+    if arcpy.Exists(filegdb_path):
+        arcpy.AddMessage("\tFileGDB {} already exists. Continue...".format(filegdb_name))
+    else:
+        dir_path = os.path.dirname(filegdb_path)
+        arcpy.management.CreateFileGDB(dir_path, filegdb_name)
+        
+def copyFeature_ifNotExists(in_fc:str, out_fc:str):
+    """
+    Checks if a feature exists in a file GDB and if not copies this feature
+
+    Args:
+        in_fc (str): path to the input feature (that will be copied.) 
+        out_fc (str): path to the output feature 
+    """
+    if arcpy.Exists(out_fc):
+        arcpy.AddMessage(f"\tFeature {os.path.basename(out_fc)} already exists. Continue...")
+    else:
+        arcpy.management.CopyFeatures(in_fc, out_fc)
+
+        
+def fieldExist(featureclass:str, fieldname:str):
+    """
+    Check if an attribute field exists
+
+    Args:
+        featureclass (str): The path to the feature class.
+        fieldname (str): The name of the field to check.
+
+    Returns:
+        bool: True if the field exists, False otherwise. 
+    """  
+    fieldList = arcpy.ListFields(featureclass, fieldname)
+    fieldCount = len(fieldList)
+ 
+    if (fieldCount == 1):
+        return True
+    else:
+        return False   
+
+def addField_ifNotExists(featureclass:str, fieldname:str, type:str):
+    """
+    Adds a field to a feature class if the field does not already exist.
+
+    Args:
+        featureclass (str): The path to the feature class.
+        fieldname (str): The name of the field to add.
+        type (str): The data type of the field to add.
+    """    
+    if (not fieldExist(featureclass, fieldname)):
+        arcpy.AddField_management(featureclass, fieldname, type)
+        
+def calculateField_ifEmpty(in_table:str, field:str, expression:str, code_block=""):
+    """
+    Check if a field in a table contains any null or empty values. If so, recalculate the field using the provided
+    expression and code block.
+
+    Args:
+        in_table (str): The input table.
+        field (str): The field to check and calculate.
+        expression (str): The expression to use for the calculation.
+        code_block (str, optional): The code block to use for the calculation. Defaults to "".
+    """
+    # Check if column contains any null or empty values
+    with arcpy.da.SearchCursor(in_table, [field]) as cursor:
+        has_nulls = False
+        for row in cursor:
+            if row[0] is None or row[0] == "":
+                has_nulls = True
+                break
+
+    # If the column contains null or empty values, recalculate it
+    if has_nulls:
+        arcpy.management.CalculateField(
+            in_table=in_table,
+            field=field,
+            expression=expression,
+            expression_type="PYTHON_9.3",
+            code_block=code_block
+        )
+        arcpy.AddMessage(f"\tThe Column <{field}> has been recalculated.")
+    else:
+        arcpy.AddMessage(f"\tThe Column <{field}> does not contain null or empty values.")
+
+
+def check_isNull(in_table:str, field:str) -> bool:
+    """
+    Checks if a specified field in a feature class contains any null or empty values.
+    
+    Args:
+    fc (str): The path to the feature class to check.
+    field (str): The name of the field to check for null or empty values.
+    
+    Returns:
+    True if there are null or empty values in the field, False otherwise.
+    """
+    
+    with arcpy.da.SearchCursor(in_table, [field]) as cursor:
+        null_count = 0
+        for row in cursor:
+            if row[0] is None:
+                null_count += 1
+            if row[0] == "":
+                null_count += 1
+            if row[0] == "null values":
+                null_count +=1
+                
+        arcpy.AddMessage(f"\tThe count of Null values in {field} is: {null_count}") 
+        if null_count == 0:
+            arcpy.AddMessage("\tThe field is already populated. Continue..")
+            return False
+        else:
+            arcpy.AddMessage("\tThe field contains null values. Recalculate...")
+            return True
