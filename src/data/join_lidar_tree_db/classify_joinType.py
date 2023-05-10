@@ -30,6 +30,10 @@ import csv
 
 from src import createGDB_ifNotExists
 from src import addField_ifNotExists
+from src import configure_logger
+
+
+logger = configure_logger()
 # start timer
 #start_time0 = time.time()
 
@@ -52,7 +56,7 @@ if kommune == "bodo" :
 # search for .env file in USER directory 
 # user_dir = C:\\USERS\\<<firstname.lastname>>
 user_dir = os.path.join(os.path.expanduser("~"))
-dotenv_path = os.path.join(user_dir, '.env')
+dotenv_path = os.path.join(user_dir, 'trekroner.env')
 
 dotenv.load_dotenv(dotenv_path)
 config = dotenv_values(dotenv_path)
