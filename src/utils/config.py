@@ -1,5 +1,5 @@
 import os
-import yaml
+from src.utils.yaml_utils import yaml_load
 from dotenv import load_dotenv
 
 # for .env file in USER directory 
@@ -12,9 +12,8 @@ load_dotenv(dotenv_path)
 LOCAL_GIT = os.getenv('LOCAL_GIT')  
 config_file = os.path.join(LOCAL_GIT, "NINAnor", "urban-treeDetection", "config.yaml")
 
-# Load the configuration file
-with open(config_file) as f:
-    config = yaml.safe_load(f)
+with open(config_file, 'r') as f:
+    config = yaml_load(f)
 
 # Get the municipality from the environment variable or the config file
 municipality = config['municipality']
