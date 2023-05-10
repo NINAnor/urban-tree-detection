@@ -30,6 +30,10 @@ import csv
 
 from src import createGDB_ifNotExists
 from src import addField_ifNotExists
+from src import configure_logger
+
+
+logger = configure_logger()
 # start timer
 #start_time0 = time.time()
 
