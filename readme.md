@@ -31,7 +31,7 @@ Here are the steps to create a conda env compatible with ArcGIS Pro 3.0.1 and to
     
         cd /d P:\%project_folder%\treeDetection
         cd ...\urban-treeDetection
-        conda env create environment.yml
+        conda env create -f environment.yml
         conda activate treeDetection
 
 2. Install the treeDetection (urban-treeDetection/src) as a local package using pip:
