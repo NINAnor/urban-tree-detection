@@ -43,8 +43,8 @@ def setup_logger(logfile=False):
     
     if logfile:
         try:
-            log_file_name = os.path.splitext(os.path.basename(sys.argv[0]))[0] + '_' + \
-                            datetime.datetime.now().strftime(date_format_os) + '.log'
+            log_file_name = datetime.datetime.now().strftime(date_format_os) + '_' + \
+                            os.path.splitext(os.path.basename(sys.argv[0]))[0] + '.log'
             log_file_path = os.path.join(file_path, log_file_name)
             # set file handler 
             logging.basicConfig(level=log_level, datefmt=date_format,

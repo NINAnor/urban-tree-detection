@@ -16,7 +16,7 @@ with open(config_file, 'r') as f:
     config = yaml_load(f)
 
 # Get the municipality from the environment variable or the config file
-municipality = config['municipality']
+MUNICIPALITY = config['municipality']
 
 # Define the configuration variables as module-level variables
 
@@ -28,9 +28,12 @@ AR5_LANDUSE_PATH = config['paths']['ar5_landuse']
 
 # project data paths 
 DATA_PATH = config['paths']['data_path']
-RAW_PATH = os.path.join(DATA_PATH, municipality, 'raw')
-INTERIM_PATH = os.path.join(DATA_PATH, municipality, 'interim')
-PROCESSED_PATH = os.path.join(DATA_PATH, municipality, 'processed')
+RAW_PATH = os.path.join(DATA_PATH, MUNICIPALITY, 'raw')
+INTERIM_PATH = os.path.join(DATA_PATH, MUNICIPALITY, 'interim')
+PROCESSED_PATH = os.path.join(DATA_PATH, MUNICIPALITY, 'processed')
 
 # path to folder containg .log files 
 LOG_PATH = os.path.join(LOCAL_GIT, "src", "log")
+
+# path to filegdb containing admin layers for the muncipality (analysis area, etc.)
+ADMIN_GDB_PATH = os.path.join(INTERIM_PATH, f"{MUNICIPALITY}_admin.gdb")
