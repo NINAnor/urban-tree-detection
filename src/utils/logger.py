@@ -6,10 +6,19 @@ import os
 import sys
 
 from src.utils.yaml_utils import yaml_load
+from dotenv import load_dotenv
 
+# for .env file in USER directory 
+# user_dir = C:\\USERS\\<<firstname.lastname>>
+user_dir = os.path.join(os.path.expanduser("~"))
+dotenv_path = os.path.join(user_dir, 'trekroner.env')
+load_dotenv(dotenv_path)
+
+# path to yaml project configuration file 
+LOCAL_GIT = os.getenv('LOCAL_GIT')  
+config_file = os.path.join(LOCAL_GIT, "NINAnor", "urban-treeDetection", "config.yaml")
 
 LOGGER = logging.getLogger(__name__)
-
 
 def setup_logger(logfile=False):
     """
@@ -18,7 +27,7 @@ def setup_logger(logfile=False):
     :returns: void (creates logging instance)
     """
     
-    with open(r'P:\152022_itree_eco_ifront_synliggjore_trars_rolle_i_okosyst\urban-treeDetection\config.yaml', 'r') as f:
+    with open(config_file, 'r') as f:
         config = yaml_load(f)
         
     

@@ -1,4 +1,6 @@
 # Global variables
+municipality: bodo
+
 paths:
   data_path: ${PROJECT}/data/
   fkb_building: ${FKB_BUILDING_PATH}
