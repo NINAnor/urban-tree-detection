@@ -1,0 +1,24 @@
+# Global variables
+paths:
+  data_path: ${PROJECT}/data/
+  fkb_building: ${FKB_BUILDING_PATH}
+  fkb_water: ${FKB_WATER_PATH}
+  ssb_district: ${SSB_DISTRICT_PATH}
+  ar5_landuse: ${AR5_LANDUSE_PATH}
+
+# postgis connection variables
+pg-connection: 
+  pg_host: ${PG_HOST}
+  pg_port: ${PG_PORT}
+  pg_user: ${PG_USER}
+  pg_key: ${PG_KEY}
+
+# Logging configuration
+logging:
+  level: DEBUG
+  log_format: "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+  date_format: "%Y.%m.%dT%H:%M:%SZ"
+  date_format_os: "%Y.%m.%dT%H.%MZ"
+  file_path: ${PROJECT}/log/
+
+# Project-specific configuration 
