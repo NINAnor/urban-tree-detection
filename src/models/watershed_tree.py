@@ -16,20 +16,26 @@
 # organise modules by use 
 # ------------------------------------------------------ #
 
-# Import modules
-import arcpy
-from arcpy import env
 import os
 import time
+import arcpy
+from arcpy import env
+
+# TODO use config 
 import dotenv
 from dotenv import dotenv_values
 import datetime
-## TODO use logger instead
+
+# TODO use logger instead
 #from utils.control import Log
+
+# local sub-package modules
 import tree
-import selectArea
-from computeAttribute import LaserAttributes
-from src import createGDB_ifNotExists
+import select_area
+from compute_attribute import LaserAttributes
+
+# local sub-package utils
+from src import arcpy_utils as au
 
 # set the municipality (kommune) to be analyzed
 kommune = "bodo"
@@ -113,7 +119,7 @@ study_area_path = os.path.join(admin_data_path, "analyseomrade")
 
 # laser segmented trees GDB
 laser_trees_path = os.path.join(interim_data_path, kommune + "_laser_trees.gdb")
-createGDB_ifNotExists(laser_trees_path)
+au.createGDB_ifNotExists(laser_trees_path)
 v_crown_merge = os.path.join(laser_trees_path, "crown_merge")
 v_top_merge = os.path.join(laser_trees_path, "top_merge")
 
@@ -179,7 +185,7 @@ if not arcpy.Exists(v_top_merge) or not arcpy.Exists(v_crown_merge):
         d_las = os.path.join(lidar_path, "tile_" + tile_code + ".lasd")
 
         filegdb_path = os.path.join(lidar_path, "tree_segmentation_" + tile_code + ".gdb")     
-        createGDB_ifNotExists(filegdb_path)
+        au.createGDB_ifNotExists(filegdb_path)
 
         prefix = os.path.join(filegdb_path, "tile_" + tile_code)
 
@@ -476,15 +482,15 @@ else:
         selected_trees = v_top_mask # TODO better name masked_trees?
         
         # TODO ADD IF EXISTS to vsea and vbuilding 
-        v_sea = selectArea.select_sea(FKB_WATER_PATH, study_area_path, admin_data_path)
-        v_building = selectArea.select_building(FKB_BUILDING_PATH, study_area_path, admin_data_path)
-        v_top_mask = selectArea.mask_tree(v_top_merge, v_building,v_sea,selected_trees)
+        v_sea = select_area.select_sea(FKB_WATER_PATH, study_area_path, admin_data_path)
+        v_building = select_area.select_building(FKB_BUILDING_PATH, study_area_path, admin_data_path)
+        v_top_mask = select_area.mask_tree(v_top_merge, v_building,v_sea,selected_trees)
         
         
         # mask tree crowns
         arcpy.AddMessage(f"\tThe tree crowns are masked for false trees within building and water areas...")
         selected_trees = v_crown_mask
-        v_crown_mask = selectArea.mask_tree(v_crown_merge, v_building,v_sea,selected_trees)
+        v_crown_mask = select_area.mask_tree(v_crown_merge, v_building,v_sea,selected_trees)
 
         arcpy.AddMessage("\t\tSelecting only treetop points that intersect with treecrown polygons ...")
         tree.topology_crownTop(v_top_mask, v_crown_mask,v_top_mask_1to1) 

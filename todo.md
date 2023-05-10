@@ -13,3 +13,8 @@
 - Mover arcpy helper functions to utils/arcpy_utils.py
 - set time functions in sep module: 
 current_datetime = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+
+- TODO PRIORITY
+- divide case 1 from case 2 
+- delete all classiyf type test files
+- Model geometry!
