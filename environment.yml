@@ -1,4 +1,4 @@
-name: treeDetection
+name: urban-treeDetection
 channels:
   - esri
   - defaults
