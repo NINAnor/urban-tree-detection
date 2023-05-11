@@ -202,3 +202,5 @@ def check_isNull(in_table:str, field:str) -> bool:
         else:
             arcpy.AddMessage("\tThe field contains null values. Recalculate...")
             return True
+        
+
