@@ -102,6 +102,57 @@ else:
 # Make a feature layer
 arcpy.MakeFeatureLayer_management(fc_case_1_2, "lyr2")
 
+
+# Unique count of JOIN FID and TARGET FID
+# add field
+au.addField_ifNotExists(
+    featureclass= fc_case_1_2,
+    fieldname= "COUNT_JOIN_FID",
+    type= "LONG"
+)
+au.addField_ifNotExists(
+    featureclass= fc_case_1_2,
+    fieldname= "COUNT_TARGET_FID",
+    type= "LONG"
+    
+)
+
+if au.fieldExist(fc_case_1_2, "COUNT_JOIN_FID") or au.fieldExist(fc_case_1_2, "COUNT_TRAGET_FID"):
+    arcpy.AddMessage(f"The fields COUNT_JOIN_FID and COUNT_TARGET_FID exists in {os.path.basename(fc_case_1_2)}. Continue... ")
+else:
+    # calculate count JOIN_FID 
+    join_fid_count_stats = arcpy.Statistics_analysis(
+        in_table= fc_case_1_2, 
+        out_table="in_memory/join_fid_count_table",
+        statistics_fields= [["JOIN_FID", "COUNT"]], 
+        case_field="TARGET_FID"
+        )
+
+    # add COUNT_JOIN_FID as field to fc
+    arcpy.JoinField_management(
+        in_data=fc_case_1_2, 
+        in_field="TARGET_FID", 
+        join_table=join_fid_count_stats,
+        join_field="TARGET_FID", 
+        fields="COUNT_JOIN_FID"
+        )
+
+    # calculate count TARGET_FID 
+    target_fid_count_stats = arcpy.Statistics_analysis(
+        fc_case_1_2, 
+        "in_memory/target_fid_count_table", 
+        [["TARGET_FID", "COUNT"]], 
+        "JOIN_FID"
+        )
+    # add COUNT_TARGET_FID as field to fc 
+    arcpy.JoinField_management(
+        fc_case_1_2, 
+        "JOIN_FID", 
+        target_fid_count_stats, 
+        "JOIN_FID", 
+        "COUNT_TARGET_FID"
+        )
+
 # Select features in class 1
 if arcpy.Exists(fc_case_1):
     arcpy.AddMessage(f"\tFeature {os.path.basename(fc_case_1)} already exists. Continue...")
