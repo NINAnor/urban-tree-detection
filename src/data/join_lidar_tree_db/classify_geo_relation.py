@@ -153,22 +153,36 @@ else:
         "COUNT_TARGET_FID"
         )
 
+
 # Select features in class 1
 if arcpy.Exists(fc_case_1):
     arcpy.AddMessage(f"\tFeature {os.path.basename(fc_case_1)} already exists. Continue...")
 else:   
-    expression = "COUNT_JOIN_FID > 1 AND COUNT_TARGET_FID = 1"
-    arcpy.SelectLayerByAttribute_management("lyr2", "NEW_SELECTION", expression)
+    query = "COUNT_JOIN_FID_1 > 1 And COUNT_TARGET_FID_1 = 1"  
+    arcpy.management.SelectLayerByAttribute(
+        in_layer_or_view="lyr2",
+        selection_type="NEW_SELECTION",
+        where_clause=query,
+        invert_where_clause=None
+    )
     arcpy.CopyFeatures_management("lyr2", fc_case_1)
     logging.info(f'Case 1 selected and exported to {os.path.basename(fc_case_1)}')
+
+
+
 
 # Select features in class 2
 if arcpy.Exists(fc_case_2):
     arcpy.AddMessage(f"\tFeature {os.path.basename(fc_case_2)} already exists. Continue...")
 else:   
     # Select features in class 1
-    expression = "COUNT_JOIN_FID = 1 AND COUNT_TARGET_FID = 1"
-    arcpy.SelectLayerByAttribute_management("lyr2", "NEW_SELECTION", expression)
+    query = "COUNT_JOIN_FID_1 = 1 And COUNT_TARGET_FID_1 = 1"
+    arcpy.management.SelectLayerByAttribute(
+        in_layer_or_view="lyr2",
+        selection_type="NEW_SELECTION",
+        where_clause=query,
+        invert_where_clause=None
+    )
     arcpy.CopyFeatures_management("lyr2", fc_case_2)
     logging.info(f'Case 2 selected and exported to {os.path.basename(fc_case_2)}')   
 
