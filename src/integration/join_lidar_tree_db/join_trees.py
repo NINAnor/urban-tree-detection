@@ -1,7 +1,7 @@
 """ 
 Joins the municipal tree dataset (stem points) with the 
 segmented laser tree crowns (tree crown polygons) 
-result: urban_trees (fc) 
+result: joined_trees (fc) 
 """
 # -*- coding: utf-8 -*-
 import os
@@ -21,21 +21,21 @@ logger.setup_logger(logfile=False)
 # --------------------------------------------------------------------------- #
 
 # set path variables
-ds_urban_trees = os.path.join(URBAN_TREES_GDB, "urban_trees")
+ds_input_trees = os.path.join(URBAN_TREES_GDB, "input_trees")
 
-fc_stem_in_situ = os.path.join(URBAN_TREES_GDB, "urban_trees", "stem_in_situ") # join
-fc_crown_laser = os.path.join(URBAN_TREES_GDB, "urban_trees", "crown_laser") # target
-fc_urban_trees = os.path.join(URBAN_TREES_GDB, "urban_trees", "urban_trees") # putput
+fc_stem_in_situ = os.path.join(URBAN_TREES_GDB, "input_trees", "stem_in_situ") # join
+fc_crown_laser = os.path.join(URBAN_TREES_GDB, "input_trees", "crown_laser") # target
+fc_joined_trees = os.path.join(URBAN_TREES_GDB, "joined_trees", "joined_trees") # putput
 
 # env settings
 env.overwriteOutput = True
 env.outputCoordinateSystem = arcpy.SpatialReference(SPATIAL_REFERENCE)
-env.workspace = ds_urban_trees
+env.workspace = ds_input_trees
 
 #------------------------------------------------------ #
 # SPATIAL JOIN - TREE CROWN POLYGON CONTAINS STEM POINT
 # ----------------------------------------------------- #
-arcpy.AddMessage(f"\tCreating a joined feature class {os.path.basename(fc_urban_trees)} by joining\
+arcpy.AddMessage(f"\tCreating a joined feature class {os.path.basename(fc_joined_trees)} by joining\
     the in situ stem points to the crown polygons that they intersect ... ")
 
 # define field mapping
@@ -59,13 +59,13 @@ fieldmapping = fieldmapping[:-1] # remove the last semicolon
 arcpy.AddMessage(f'fieldmapping:+n{fieldmapping}')
 
 # join 
-if arcpy.Exists(fc_urban_trees):
-    arcpy.AddMessage(f"\tFeature {os.path.basename(fc_urban_trees)} already exists. Continue...")
+if arcpy.Exists(fc_joined_trees):
+    arcpy.AddMessage(f"\tFeature {os.path.basename(fc_joined_trees)} already exists. Continue...")
 else:
     arcpy.analysis.SpatialJoin(
         target_features=fc_crown_laser,
         join_features=fc_stem_in_situ,
-        out_feature_class=fc_urban_trees,
+        out_feature_class=fc_joined_trees,
         join_operation="JOIN_ONE_TO_MANY",
         join_type="KEEP_ALL",
         field_mapping = fieldmapping,

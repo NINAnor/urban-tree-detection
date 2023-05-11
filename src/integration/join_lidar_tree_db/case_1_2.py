@@ -35,7 +35,6 @@ from src import arcpy_utils as au
 logger.setup_logger(logfile=False)
 
 # set path variables
-ds_urban_trees = os.path.join(URBAN_TREES_GDB, "urban_trees")
 ds_joined_trees = os.path.join(URBAN_TREES_GDB, "joined_trees")
 
 fc_case_1_2 = os.path.join(ds_joined_trees, "join_case_1_2") 
@@ -45,7 +44,7 @@ fc_case_2 = os.path.join(ds_joined_trees, "join_case_2")
 # env settings
 env.overwriteOutput = True
 env.outputCoordinateSystem = arcpy.SpatialReference(SPATIAL_REFERENCE)
-env.workspace = ds_urban_trees
+env.workspace = ds_joined_trees
 
 au.addField_ifNotExists(
     featureclass= fc_case_1_2,

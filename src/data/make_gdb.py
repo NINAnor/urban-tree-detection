@@ -12,14 +12,14 @@ for gdb in geodatabase_locations:
 
 print(f"All geodatabases exist for {MUNICIPALITY} municipality.")
 
-ds_urban_trees = os.path.join(URBAN_TREES_GDB, "urban_trees")
+ds_input_trees = os.path.join(URBAN_TREES_GDB, "input_trees")
 
 
 # Create the "urban_trees" feature dataset if it doesn't exist
-if not arcpy.Exists(ds_urban_trees):
+if not arcpy.Exists(ds_input_trees):
     arcpy.CreateFeatureDataset_management(
         out_dataset_path=URBAN_TREES_GDB,
-        out_name= "urban_trees",
+        out_name= "input_trees",
         spatial_reference=SPATIAL_REFERENCE)
     
 

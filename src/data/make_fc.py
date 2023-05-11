@@ -16,7 +16,7 @@ from src import arcpy_utils as au
 
 # stem points
 in_fc = os.path.join(IN_SITU_TREES_GDB, "stem_in_situ") 
-out_fc = os.path.join(URBAN_TREES_GDB, "urban_trees", "stem_in_situ")
+out_fc = os.path.join(URBAN_TREES_GDB, "input_trees", "stem_in_situ")
 
 au.copyFeature_ifNotExists(
     in_fc=in_fc,
@@ -29,7 +29,7 @@ au.copyFeature_ifNotExists(
 
 # tree top points
 in_fc = os.path.join(LASER_TREES_GDB, "top_1to1")
-out_fc = os.path.join(URBAN_TREES_GDB, "urban_trees", "top_laser")
+out_fc = os.path.join(URBAN_TREES_GDB, "input_trees", "top_laser")
 
 au.copyFeature_ifNotExists(
     in_fc=in_fc,
@@ -38,7 +38,7 @@ au.copyFeature_ifNotExists(
 
 # tree crown polygons 
 in_fc = os.path.join(LASER_TREES_GDB,"crown_1to1")
-out_fc = os.path.join(URBAN_TREES_GDB, "urban_trees", "crown_laser")
+out_fc = os.path.join(URBAN_TREES_GDB, "input_trees", "crown_laser")
 
 au.copyFeature_ifNotExists(
     in_fc=in_fc,

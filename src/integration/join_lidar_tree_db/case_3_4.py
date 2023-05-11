@@ -24,10 +24,10 @@ from src import arcpy_utils as au
 logger.setup_logger(logfile=False)
 
 # set path variables
-ds_urban_trees = os.path.join(URBAN_TREES_GDB, "urban_trees")
+#ds_urban_trees = os.path.join(URBAN_TREES_GDB, "urban_trees")
 ds_joined_trees = os.path.join(URBAN_TREES_GDB, "joined_trees")
 
-fc_urban_trees = os.path.join(URBAN_TREES_GDB, "urban_trees", "urban_trees") # joined dataset
+fc_joined_trees = os.path.join(ds_joined_trees, "joined_trees") # joined dataset
 fc_case_1_2 = os.path.join(ds_joined_trees, "join_case_1_2") 
 fc_case_3 = os.path.join(ds_joined_trees, "join_case_3")
 fc_case_4 = os.path.join(ds_joined_trees, "join_case_4")
@@ -35,16 +35,16 @@ fc_case_4 = os.path.join(ds_joined_trees, "join_case_4")
 # env settings
 env.overwriteOutput = True
 env.outputCoordinateSystem = arcpy.SpatialReference(SPATIAL_REFERENCE)
-env.workspace = ds_urban_trees
+env.workspace = ds_joined_trees
 
 au.addField_ifNotExists(
-    featureclass= fc_urban_trees,
+    featureclass= fc_joined_trees,
     fieldname="geo_relation",
     type="TEXT"
     )
 
 # Create a feature layer from the input feature class
-arcpy.MakeFeatureLayer_management(fc_urban_trees, "lyr")
+arcpy.MakeFeatureLayer_management(fc_joined_trees, "lyr")
 
 field_crown_id = "crown_id_laser"
 field_tree_id = "tree_id"
