@@ -39,14 +39,14 @@ ds_input_trees = os.path.join(URBAN_TREES_GDB, "input_trees")
 ds_joined_trees = os.path.join(URBAN_TREES_GDB, "joined_trees")
 
 # input
-fc_case_1_2 = os.path.join(ds_joined_trees, "join_case_1_2") 
+fc_case_1_2 = os.path.join(ds_joined_trees, "c1_c2_crowns") 
 fc_stem_in_situ = os.path.join(ds_input_trees, "stem_in_situ") 
 
 # output
-fc_case_1 = os.path.join(ds_joined_trees, "join_case_1") # case 1 crowns
-fc_case_2 = os.path.join(ds_joined_trees, "join_case_2") # case 2 crowns
-fc_case_1_stems = os.path.join(ds_joined_trees, "join_case_1_stems") # case 1 stems
-fc_case_2_stems = os.path.join(ds_joined_trees, "join_case_2_stems") # case 2 stems
+fc_case_1 = os.path.join(ds_joined_trees, "c1_crowns") # case 1 crowns
+fc_case_2 = os.path.join(ds_joined_trees, "c2_crowns") # case 2 crowns
+fc_case_1_stems = os.path.join(ds_joined_trees, "c1_stems") # case 1 stems
+fc_case_2_stems = os.path.join(ds_joined_trees, "c2_stems") # case 2 stems
 
 
 # env settings

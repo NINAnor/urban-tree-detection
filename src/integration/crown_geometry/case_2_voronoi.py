@@ -17,9 +17,15 @@ logger.setup_logger(logfile=True)
 logging.info(f'Split Case 2 treecrowns for <{MUNICIPALITY}> municipality using a Voronoi diagram.')
 
 # input data
-# TODO update to "c2_stems" and "c2_crowns"
-fc_case_2_stems = os.path.join(ds_joined_trees, "join_case_2_stems") 
-fc_case_2_crowns = os.path.join(ds_joined_trees, "join_case_2") 
+
+
+# input
+fc_case_1_2 = os.path.join(ds_joined_trees, "c1_c2_crowns") 
+fc_stem_in_situ = os.path.join(ds_input_trees, "stem_in_situ") 
+
+# output
+fc_case_2_stems = os.path.join(ds_joined_trees, "c2_stems") 
+fc_case_2_crowns = os.path.join(ds_joined_trees, "c2_crowns") 
 
 # output data 
 fc_c2_crowns_voronoi = os.path.join(ds_joined_trees, "c2_crowns_voronoi") 
@@ -28,7 +34,7 @@ if arcpy.Exists(fc_c2_crowns_voronoi):
 else:  
     arcpy.CreateFeatureclass_management(
         out_path=ds_joined_trees,
-        out_name = "case_2_crowns_voronoi", 
+        out_name = "c2_crowns_voronoi", 
         geometry_type="POLYGON"
         )
     

@@ -32,10 +32,10 @@ fc_stem_in_situ = os.path.join(ds_input_trees, "stem_in_situ")
 fc_joined_trees = os.path.join(ds_joined_trees, "joined_trees") 
 
 # output
-fc_case_1_2 = os.path.join(ds_joined_trees, "join_case_1_2") 
-fc_case_3 = os.path.join(ds_joined_trees, "join_case_3")
-fc_case_3_stems = os.path.join(ds_joined_trees, "join_case_3_stems")
-fc_case_4 = os.path.join(ds_joined_trees, "join_case_4")
+fc_case_1_2 = os.path.join(ds_joined_trees, "c1_c2_crowns") 
+fc_case_3 = os.path.join(ds_joined_trees, "c3_crowns")
+fc_case_3_stems = os.path.join(ds_joined_trees, "c3_stems")
+fc_case_4 = os.path.join(ds_joined_trees, "c4_crowns")
 
 # env settings
 env.overwriteOutput = True
