@@ -74,4 +74,9 @@ else:
         distance_field_name=""
     )
     
-    
+# list of fields to be kept
+keep_fields = ["TARGET_FID", "JOIN_FID", "crown_id_laser", "tree_id", "geo_relation"]
+
+method = "KEEP_FIELDS"
+arcpy.DeleteField_management(fc_joined_trees,keep_fields, "KEEP_FIELDS")
+arcpy.DeleteField_management(fc_joined_trees,keep_fields, "KEEP_FIELDS")
