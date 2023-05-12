@@ -24,11 +24,14 @@ from src import (URBAN_TREES_GDB, SPATIAL_REFERENCE)
 ds_joined_trees = os.path.join(URBAN_TREES_GDB, "joined_trees")
 ds_itree_trees = os.path.join(URBAN_TREES_GDB, "itree_trees")
 
-fc_case_1 = os.path.join(ds_joined_trees, "join_case_1") 
-fc_case_2 = os.path.join(ds_joined_trees, "join_case_2") 
-fc_case_3 = os.path.join(ds_joined_trees, "join_case_3")
-fc_case_4 = os.path.join(ds_joined_trees, "join_case_4")
+# training 
+fc_case_1 = os.path.join(ds_joined_trees, "c1_crowns") 
+fc_case_2_voronoi = os.path.join(ds_joined_trees, "c2_crowns_voronoi") 
+fc_case_3 = os.path.join(ds_joined_trees, "c3_crowns")
 fc_training = os.path.join(ds_itree_trees, "training_trees")
+
+# extrapolation
+fc_case_4 = os.path.join(ds_joined_trees, "c4_crowns")
 fc_extrapolation= os.path.join(ds_itree_trees, "extrapolation_trees")
 
 # env settings
