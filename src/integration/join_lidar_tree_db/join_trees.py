@@ -18,6 +18,9 @@ logger.setup_logger(logfile=False)
 
 # --------------------------------------------------------------------------- #
 # RUN make_gdb and make_fc before running this file
+# TODO BODO specific 
+# Manual Join in ArPRO
+# Keep joinfid, targetfid, corwn_id and tree_id
 # --------------------------------------------------------------------------- #
 
 # set path variables
@@ -25,7 +28,7 @@ ds_input_trees = os.path.join(URBAN_TREES_GDB, "input_trees")
 
 fc_stem_in_situ = os.path.join(URBAN_TREES_GDB, "input_trees", "stem_in_situ") # join
 fc_crown_laser = os.path.join(URBAN_TREES_GDB, "input_trees", "crown_laser") # target
-fc_joined_trees = os.path.join(URBAN_TREES_GDB, "joined_trees", "joined_trees") # putput
+fc_joined_trees = os.path.join(URBAN_TREES_GDB, "joined_trees", "joined_trees_2") # putput
 
 # env settings
 env.overwriteOutput = True
@@ -73,10 +76,4 @@ else:
         search_radius=None,
         distance_field_name=""
     )
-    
-# list of fields to be kept
-keep_fields = ["TARGET_FID", "JOIN_FID", "crown_id_laser", "tree_id", "geo_relation"]
 
-method = "KEEP_FIELDS"
-arcpy.DeleteField_management(fc_joined_trees,keep_fields, "KEEP_FIELDS")
-arcpy.DeleteField_management(fc_joined_trees,keep_fields, "KEEP_FIELDS")
