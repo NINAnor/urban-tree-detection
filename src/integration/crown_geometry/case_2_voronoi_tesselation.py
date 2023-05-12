@@ -8,8 +8,8 @@ AUTHOR(S): Zofie Cimburova < zofie.cimburova AT nina.no>
 To Dos: 
 """
 
+import os
 import arcpy
-import math  
 from arcpy import env
 from arcpy.sa import *
 

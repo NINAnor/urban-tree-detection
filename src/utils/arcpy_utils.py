@@ -39,7 +39,7 @@ def reclassify_row(fc, field_to_check, field_to_modify, lookup_dict):
     print(f"The rows in <{field_to_modify}> are reclassified.")
     
 # --------------------------------------------------------------------------- #
-# JOIN FUNCTIONS
+# JOIN/MERGE/EXTRACT FUNCTIONS
 # --------------------------------------------------------------------------- #
 
 def join_and_copy(t_dest:str, join_a_dest:str, t_src:str, join_a_src:str, a_src:list, a_dest:list):
@@ -76,6 +76,29 @@ def join_and_copy(t_dest:str, join_a_dest:str, t_src:str, join_a_src:str, a_src:
             name_dest + "." + dest_field, 
             "!" + name_src + "." + src_field + "!"
         )
+        
+
+def extractFeatures_byID(target_feature:str, id_feature:str, output_feature:str, id_field:str):
+    """
+    This function extracts features from a feature lyr based on a list 
+    of unique IDs derived from another feature lyr.
+
+    Args:
+        target_feature (str): Target feature layer path
+        id_feature (str): Path to the layer that contains the selecting ids
+        output_feature (str): Output feature layer path 
+    """    
+    # Get unique IDs from the id_feature layer
+    ids = set(row[0] for row in arcpy.da.SearchCursor(id_feature, id_field))
+    sorted_ids = sorted(list(ids))
+    print("number of ids:", len(sorted_ids))
+
+    # Select the features in the target layer if the ID is in the ID_list  
+    where_clause = f"tree_id IN ({','.join(map(str, sorted_ids))})"
+    selected_layer = arcpy.management.MakeFeatureLayer(target_feature, "selected_layer", where_clause)
+    
+    # Copy the selected features to the output feature layer
+    arcpy.management.CopyFeatures(selected_layer, output_feature)
 
 # --------------------------------------------------------------------------- #
 # ifNotExists or ifEmpty FUNCTIONS

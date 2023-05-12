@@ -38,9 +38,16 @@ logger.setup_logger(logfile=False)
 ds_input_trees = os.path.join(URBAN_TREES_GDB, "input_trees")
 ds_joined_trees = os.path.join(URBAN_TREES_GDB, "joined_trees")
 
+# input
 fc_case_1_2 = os.path.join(ds_joined_trees, "join_case_1_2") 
-fc_case_1 = os.path.join(ds_joined_trees, "join_case_1") 
-fc_case_2 = os.path.join(ds_joined_trees, "join_case_2") 
+fc_stem_in_situ = os.path.join(ds_input_trees, "stem_in_situ") 
+
+# output
+fc_case_1 = os.path.join(ds_joined_trees, "join_case_1") # case 1 crowns
+fc_case_2 = os.path.join(ds_joined_trees, "join_case_2") # case 2 crowns
+fc_case_1_stems = os.path.join(ds_joined_trees, "join_case_1_stems") # case 1 stems
+fc_case_2_stems = os.path.join(ds_joined_trees, "join_case_2_stems") # case 2 stems
+
 
 # env settings
 env.overwriteOutput = True
@@ -99,10 +106,9 @@ query_case_2 = "COUNT_TARGET_FID_1 = 1 And COUNT_JOIN_FID_1 > 1"   # (polygon:po
 
 
 # --------------------------------------------------------------------------- #
-# CASE 1 
+# CASE 1 (1:1)
 # --------------------------------------------------------------------------- #
 
-# Select features in class 1
 if arcpy.Exists(fc_case_1):
     arcpy.AddMessage(f"\tFeature {os.path.basename(fc_case_1)} already exists. Continue...")
 else:   
@@ -125,15 +131,12 @@ else:
     logging.info(f'Case 1 selected and exported to {os.path.basename(fc_case_1)}')
 
 # --------------------------------------------------------------------------- #
-# CASE 2 
+# CASE 2 (1:n)
 # --------------------------------------------------------------------------- #
 
-# Select features in class 2
 if arcpy.Exists(fc_case_2):
     arcpy.AddMessage(f"\tFeature {os.path.basename(fc_case_2)} already exists. Continue...")
 else:   
-    # Select features in class 1
-
     arcpy.management.SelectLayerByAttribute(
         in_layer_or_view="lyr",
         selection_type="NEW_SELECTION",
@@ -154,7 +157,7 @@ else:
 
 
 # --------------------------------------------------------------------------- #
-# Clean result fc join_case_1 and join_case_2
+# Clean results
 # --------------------------------------------------------------------------- #    
     
 # list of fields to be kept
@@ -164,3 +167,14 @@ method = "KEEP_FIELDS"
 arcpy.DeleteField_management(fc_case_1,keep_fields, "KEEP_FIELDS")
 arcpy.DeleteField_management(fc_case_2,keep_fields, "KEEP_FIELDS")
 
+# --------------------------------------------------------------------------- #
+# Extract crowns to stems 
+# --------------------------------------------------------------------------- # 
+
+id_field = "tree_id"
+au.extractFeatures_byID(
+    target_feature=fc_stem_in_situ, 
+    id_feature=fc_case_1, 
+    output_feature=fc_case_1_stems, 
+    id_field = id_field)
+au.extractFeatures_byID(fc_stem_in_situ, fc_case_2, fc_case_2_stems, id_field)

@@ -24,12 +24,17 @@ from src import arcpy_utils as au
 logger.setup_logger(logfile=False)
 
 # set path variables
-#ds_urban_trees = os.path.join(URBAN_TREES_GDB, "urban_trees")
+ds_input_trees = os.path.join(URBAN_TREES_GDB, "input_trees")
 ds_joined_trees = os.path.join(URBAN_TREES_GDB, "joined_trees")
 
-fc_joined_trees = os.path.join(ds_joined_trees, "joined_trees") # joined dataset
+# input
+fc_stem_in_situ = os.path.join(ds_input_trees, "stem_in_situ") 
+fc_joined_trees = os.path.join(ds_joined_trees, "joined_trees") 
+
+# output
 fc_case_1_2 = os.path.join(ds_joined_trees, "join_case_1_2") 
 fc_case_3 = os.path.join(ds_joined_trees, "join_case_3")
+fc_case_3_stems = os.path.join(ds_joined_trees, "join_case_3_stems")
 fc_case_4 = os.path.join(ds_joined_trees, "join_case_4")
 
 # env settings
@@ -55,7 +60,7 @@ query_case_3 = f"{field_crown_id} IS NULL AND {field_tree_id} IS NOT NULL"  # (p
 query_case_4 = f"{field_crown_id} IS NOT NULL AND {field_tree_id} IS NULL"  # (polygon:point = 1:0)
 
 # --------------------------------------------------------------------------- #
-# CASE 1 and CASE 2 --> split in script classify_case_1_2.py
+# CASE 1 and CASE 2 (n:n) --> split in script classify_case_1_2.py
 # --------------------------------------------------------------------------- #
 
 #Select case 1 and case 2 and export to new fc 
@@ -72,10 +77,9 @@ else:
     logging.info(f'Case 1 and 2 selected and exported to {os.path.basename(fc_case_1_2)}')
 
 # --------------------------------------------------------------------------- #
-# CASE 3 
+# CASE 3 (0:1)
 # --------------------------------------------------------------------------- #
 
-# Select and export case 3 (0:1) 
 if arcpy.Exists(fc_case_3):
     arcpy.AddMessage(f"\tFeature {os.path.basename(fc_case_3)} already exists. Continue...")
 else:
@@ -97,10 +101,18 @@ else:
         )
     logging.info(f'Case 3 selected and exported to {os.path.basename(fc_case_3)}')
 
+
+    id_field = "tree_id"
+    au.extractFeatures_byID(
+        target_feature=fc_stem_in_situ, 
+        id_feature=fc_case_3, 
+        output_feature=fc_case_3_stems, 
+        id_field = id_field)
+    
 # --------------------------------------------------------------------------- #
-# CASE 4 
+# CASE 4 (1:0) 
 # --------------------------------------------------------------------------- #
-#Select and export case 4 (1:0) 
+
 if arcpy.Exists(fc_case_4):
     arcpy.AddMessage(f"\tFeature {os.path.basename(fc_case_4)} already exists. Continue...")
 else:
@@ -124,7 +136,7 @@ else:
 
 
 # --------------------------------------------------------------------------- #
-# Clean result fc join_case_3 and join_case_4
+# Clean the results
 # --------------------------------------------------------------------------- #    
     
 # list of fields to be kept
@@ -132,4 +144,5 @@ keep_fields = ["TARGET_FID", "JOIN_FID", "crown_id_laser", "tree_id", "geo_relat
 
 method = "KEEP_FIELDS"
 arcpy.DeleteField_management(fc_case_3,keep_fields, "KEEP_FIELDS")
+arcpy.DeleteField_management(fc_case_3_stems,keep_fields, "KEEP_FIELDS")
 arcpy.DeleteField_management(fc_case_4,keep_fields, "KEEP_FIELDS")
