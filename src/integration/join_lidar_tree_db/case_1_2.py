@@ -35,6 +35,7 @@ from src import arcpy_utils as au
 logger.setup_logger(logfile=False)
 
 # set path variables
+ds_input_trees = os.path.join(URBAN_TREES_GDB, "input_trees")
 ds_joined_trees = os.path.join(URBAN_TREES_GDB, "joined_trees")
 
 fc_case_1_2 = os.path.join(ds_joined_trees, "join_case_1_2") 
@@ -141,13 +142,13 @@ else:
     )
     arcpy.CopyFeatures_management("lyr", fc_case_2)
     arcpy.management.CalculateField(
-    in_table=fc_case_2,
-    field=field_geo_relation,
-    expression='"Case 2"',
-    expression_type="PYTHON_9.3",
-    code_block="",
-    field_type="TEXT",
-    enforce_domains="NO_ENFORCE_DOMAINS"
+        in_table=fc_case_2,
+        field=field_geo_relation,
+        expression='"Case 2"',
+        expression_type="PYTHON_9.3",
+        code_block="",
+        field_type="TEXT",
+        enforce_domains="NO_ENFORCE_DOMAINS"
     )
     logging.info(f'Case 2 selected and exported to {os.path.basename(fc_case_2)}')  
 
@@ -162,3 +163,4 @@ keep_fields = ["TARGET_FID", "JOIN_FID", "COUNT_TARGET_FID_1", "COUNT_JOIN_FID_1
 method = "KEEP_FIELDS"
 arcpy.DeleteField_management(fc_case_1,keep_fields, "KEEP_FIELDS")
 arcpy.DeleteField_management(fc_case_2,keep_fields, "KEEP_FIELDS")
+
