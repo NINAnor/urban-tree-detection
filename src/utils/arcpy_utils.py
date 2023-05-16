@@ -227,15 +227,24 @@ def check_isNull(in_table:str, field:str) -> bool:
             return True
 
 
-def deleteFields(in_table, keep_list):
+def deleteFields(in_table, out_table, keep_list):
     """Deletes all fields from a table except required fields 
     and those in the keep_list.
 
     Args:
         in_table (str): path to the input table
         keep_list (str): list of fields to keep
-    """    
-    fieldObj_list = arcpy.ListFields(in_table)
+    """        
+    # Describe the input (need to test the dataset and data types)
+    desc = arcpy.Describe(in_table)
+
+    # Make a copy of the input (so you can maintain the original as is)
+    if desc.datasetType == "FeatureClass":
+        arcpy.CopyFeatures_management(in_table, out_table)
+    else:
+        arcpy.CopyRows_management(in_table, out_table)
+    
+    fieldObj_list = arcpy.ListFields(out_table)
 
     # Create an empty list that will be populated with field names        
     field_list = []
@@ -243,8 +252,13 @@ def deleteFields(in_table, keep_list):
     for field in fieldObj_list:
         if not field.required and field.name not in keep_list:
             field_list.append(field.name)  
-            
+    
+    # dBASE tables require a field other than an OID and Shape. If this is
+    # the case, retain an extra field (the first one in the original list        
+    if desc.dataType in ["ShapeFile", "DbaseTable"]:
+        field_list = field_list[1:]
+
     print(f"Keep the fields: {keep_list}.")
     print(f"Delete the fields: {field_list}.")
-    arcpy.DeleteField_management(in_table, field_list)
+    arcpy.DeleteField_management(out_table, field_list)
 

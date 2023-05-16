@@ -17,21 +17,29 @@ logger.setup_logger(logfile=True)
 logging.info(f'Split Case 2 treecrowns for <{MUNICIPALITY}> municipality using a Voronoi diagram.')
 
 # input data
-fc_case_2_stems = os.path.join(ds_joined_trees, "c2_stems") 
-fc_case_2_crowns = os.path.join(ds_joined_trees, "c2_crowns") 
+fc_c2_stems_in = os.path.join(ds_joined_trees, "c2_stems") 
+fc_c2_crowns_in = os.path.join(ds_joined_trees, "c2_crowns") 
+
+fc_case_2_stems = os.path.join(ds_joined_trees, "c2_stems_cleaned") 
+fc_case_2_crowns = os.path.join(ds_joined_trees, "c2_crowns_cleaned") 
 
 # clean layers 
 keep_list = ["tree_id","crown_id_laser","geo_relation"]
 
 au.deleteFields(
-    in_table=fc_case_2_stems,
+    in_table=fc_c2_stems_in,
+    out_table=fc_case_2_stems,
     keep_list= keep_list
     )
 
 au.deleteFields(
-    in_table=fc_case_2_crowns,
+    in_table=fc_c2_crowns_in,
+    out_table=fc_case_2_crowns,
     keep_list= keep_list
     )
+
+arcpy.Delete_management(fc_c2_stems_in)
+arcpy.Delete_management(fc_c2_crowns_in)
 
 # # output data 
 fc_c2_crowns_voronoi = os.path.join(ds_joined_trees, "c2_crowns_voronoi") 
@@ -83,9 +91,10 @@ with arcpy.da.SearchCursor(polygon_layer, fields) as cursor:
         arcpy.CopyFeatures_management("selected_polygon", mem_crown_lyr) # tree crown  
 
         # log the tree_id values of the selected stem points
-        with arcpy.da.SearchCursor("point_lyr", fields) as cursor:
+        fields_pnt = ["OBJECTID", "tree_id"]
+        with arcpy.da.SearchCursor("point_lyr", fields_pnt) as cursor:
             for row in cursor:
-                logging.info(f"OBJECTID: {row[0]}, tree_id: {row[1]}, crown_id: {row[2]}")
+                logging.info(f"OBJECTID: {row[0]}, tree_id: {row[1]}")
 
 
         # split the treecrown using the thiessen polygons
