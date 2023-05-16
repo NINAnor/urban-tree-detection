@@ -48,13 +48,13 @@ def join_and_copy(t_dest:str, join_a_dest:str, t_src:str, join_a_src:str, a_src:
     to attributes in "destination table".
 
     Args:
-        t_dest (str): destinatation table (in_table)
-        join_a_dest (str): destination field (in_field)
-        t_src (str): source table (join_table)
-        join_a_src (str): source field (join_field)
-        a_src (list): source list of fields (join_field_list)
-        a_dest (str): destination list of fields (in_field_list)
-    """ 
+        t_dest (str): destinatation table, table view to wich the join will be added.  
+        join_a_dest (str): destination field, the field in the dst table on which the join will be based. 
+        t_src (str): source table (join table), the table view to be joined to the destination table.
+        join_a_src (str): source field (join field), the field in the source table on which the join will be based.
+        a_src (list): source list of fields (join field list), the list of fields to be copied from the source table to the destination table.
+        a_dest (str): destination list of fields, the name of the source fields to where the copied values will be stored in the destination table.
+    """
      
     name_dest = arcpy.Describe(t_dest).name
     name_src = arcpy.Describe(t_src).name
@@ -65,6 +65,8 @@ def join_and_copy(t_dest:str, join_a_dest:str, t_src:str, join_a_src:str, a_src:
      
     # Join
     arcpy.AddJoin_management(l_dest, join_a_dest, t_src, join_a_src)
+    
+
     
     # Copy attributes   
     for src_field, dest_field in zip(a_src, a_dest):
@@ -94,7 +96,7 @@ def extractFeatures_byID(target_feature:str, id_feature:str, output_feature:str,
     print("number of ids:", len(sorted_ids))
 
     # Select the features in the target layer if the ID is in the ID_list  
-    where_clause = f"tree_id IN ({','.join(map(str, sorted_ids))})"
+    where_clause = f"{id_field} IN ({','.join(map(str, sorted_ids))})"
     selected_layer = arcpy.management.MakeFeatureLayer(target_feature, "selected_layer", where_clause)
     
     # Copy the selected features to the output feature layer

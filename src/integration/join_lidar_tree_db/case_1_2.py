@@ -158,6 +158,7 @@ else:
 
 # --------------------------------------------------------------------------- #
 # Clean results
+# TODO add to separate clean script
 # --------------------------------------------------------------------------- #    
     
 # list of fields to be kept
@@ -169,6 +170,7 @@ arcpy.DeleteField_management(fc_case_2,keep_fields, "KEEP_FIELDS")
 
 # --------------------------------------------------------------------------- #
 # Extract crowns to stems 
+# TODO join crown_id_laser georelation to stems
 # --------------------------------------------------------------------------- # 
 
 id_field = "tree_id"

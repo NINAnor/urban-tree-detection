@@ -11,52 +11,18 @@ import logging
 from src import logger
 from src import (SPATIAL_REFERENCE, URBAN_TREES_GDB, MUNICIPALITY)
 from src import arcpy_utils as au
-ds_joined_trees = os.path.join(URBAN_TREES_GDB, "joined_trees")
 
-logger.setup_logger(logfile=True)
+
+logger.setup_logger(logfile=False)
 logging.info(f'Split Case 2 treecrowns for <{MUNICIPALITY}> municipality using a Voronoi diagram.')
 
 # input data
-fc_c2_stems_in = os.path.join(ds_joined_trees, "c2_stems") 
-fc_c2_crowns_in = os.path.join(ds_joined_trees, "c2_crowns") 
-
+ds_joined_trees = os.path.join(URBAN_TREES_GDB, "joined_trees")
 fc_case_2_stems = os.path.join(ds_joined_trees, "c2_stems_cleaned") 
 fc_case_2_crowns = os.path.join(ds_joined_trees, "c2_crowns_cleaned") 
 
-# clean layers 
-keep_list = ["tree_id","crown_id_laser","geo_relation"]
-
-au.deleteFields(
-    in_table=fc_c2_stems_in,
-    out_table=fc_case_2_stems,
-    keep_list= keep_list
-    )
-
-au.deleteFields(
-    in_table=fc_c2_crowns_in,
-    out_table=fc_case_2_crowns,
-    keep_list= keep_list
-    )
-
-arcpy.Delete_management(fc_c2_stems_in)
-arcpy.Delete_management(fc_c2_crowns_in)
-
-# # output data 
+# output data 
 fc_c2_crowns_voronoi = os.path.join(ds_joined_trees, "c2_crowns_voronoi") 
-if arcpy.Exists(fc_c2_crowns_voronoi):
-    logging.info(f"Feature {os.path.basename(fc_c2_crowns_voronoi)} already exists. Continue...")
-else:  
-    arcpy.CreateFeatureclass_management(
-        out_path=ds_joined_trees,
-        out_name = "c2_crowns_voronoi", 
-        geometry_type="POLYGON"
-        )
-    
-    au.addField_ifNotExists(fc_c2_crowns_voronoi, "tree_id", "LONG")
-    au.addField_ifNotExists(fc_c2_crowns_voronoi, "crown_id_laser", "LONG")
-    au.addField_ifNotExists(fc_c2_crowns_voronoi, "geo_relation", "TEXT")
-    
-    logging.info(f"Feature {os.path.basename(fc_c2_crowns_voronoi)} is created.")
 
 # set environment 
 env.overwriteOutput = True
@@ -76,9 +42,14 @@ with arcpy.da.SearchCursor(polygon_layer, fields) as cursor:
     for row in cursor:
         
         # create memory layers
-        mem_crown_lyr = "in_memory/temp_crown"
-        mem_thiessen_lyr = "in_memory/thiessen"
-        mem_split_crown_lyr = "in_memory/temp_split_crown" 
+        # error: cannot run workflow with using memory lyrs
+        # mem_crown_lyr = "in_memory/temp_crown"
+        # mem_thiessen_lyr = "in_memory/thiessen"
+        # mem_split_crown_lyr = "in_memory/temp_split_crown" 
+        
+        tmp_crown_lyr = os.path.join(ds_joined_trees, "temp_crown") 
+        tmp_thiessen_lyr = os.path.join(ds_joined_trees,"thiessen")
+        tmp_split_crown_lyr = os.path.join(ds_joined_trees,"temp_split_crown") 
         
         logging.info(f"START SPLITTING TREECROWN, OBJECTID: {row[0]}, crown_id: {row[2]}")
         
@@ -88,7 +59,7 @@ with arcpy.da.SearchCursor(polygon_layer, fields) as cursor:
 
         # Select stem points that intersect with the tree crown
         arcpy.SelectLayerByLocation_management("point_lyr", "INTERSECT", "selected_polygon") # stem points
-        arcpy.CopyFeatures_management("selected_polygon", mem_crown_lyr) # tree crown  
+        arcpy.CopyFeatures_management("selected_polygon", tmp_crown_lyr) # tree crown  
 
         # log the tree_id values of the selected stem points
         fields_pnt = ["OBJECTID", "tree_id"]
@@ -97,12 +68,12 @@ with arcpy.da.SearchCursor(polygon_layer, fields) as cursor:
                 logging.info(f"OBJECTID: {row[0]}, tree_id: {row[1]}")
 
 
-        # split the treecrown using the thiessen polygons
-        env.extent = mem_crown_lyr # tree crown area 
-        arcpy.CreateThiessenPolygons_analysis("point_lyr", mem_thiessen_lyr) 
-        arcpy.Intersect_analysis([mem_thiessen_lyr, mem_crown_lyr], mem_split_crown_lyr)
+        #split the treecrown using the thiessen polygons
+        env.extent = tmp_crown_lyr # tree crown area 
+        arcpy.CreateThiessenPolygons_analysis("point_lyr", tmp_thiessen_lyr) 
+        arcpy.Intersect_analysis([tmp_thiessen_lyr, tmp_crown_lyr], tmp_split_crown_lyr)
         arcpy.Append_management(
-            inputs=mem_split_crown_lyr,
+            inputs=tmp_split_crown_lyr,
             target= fc_c2_crowns_voronoi, 
             schema_type= "NO_TEST",
             field_mapping=None,
@@ -111,10 +82,11 @@ with arcpy.da.SearchCursor(polygon_layer, fields) as cursor:
             match_fields=None,
             update_geometry="NOT_UPDATE_GEOMETRY"
             )
-        # delete memory layers
-        arcpy.Delete_management(mem_crown_lyr)
-        arcpy.Delete_management(mem_thiessen_lyr)  
-        arcpy.Delete_management(mem_split_crown_lyr)       
+        
+        # delete tmp/memory layers
+        arcpy.Delete_management(tmp_crown_lyr)
+        arcpy.Delete_management(tmp_thiessen_lyr)  
+        arcpy.Delete_management(tmp_split_crown_lyr)       
         break
     
     
