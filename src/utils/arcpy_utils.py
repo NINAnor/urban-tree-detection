@@ -235,7 +235,6 @@ def deleteFields(in_table, keep_list):
         in_table (str): path to the input table
         keep_list (str): list of fields to keep
     """    
-    desc = arcpy.Describe(in_table)
     fieldObj_list = arcpy.ListFields(in_table)
 
     # Create an empty list that will be populated with field names        
@@ -245,8 +244,11 @@ def deleteFields(in_table, keep_list):
         if not field.required:
             field_list.append(field.name)
 
-    if desc.dataType in keep_list:
-        field_list = field_list[1:]
-    print(f"Keep the fields: {field_list}.")
+    for field_name in keep_list:
+        if field_name in field_list:
+            field_list.remove(field_name)   
+            
+    print(f"Keep the fields: {keep_list}.")
+    print(f"Delete the fields: {field_list}.")
     arcpy.DeleteField_management(in_table, field_list)
 
