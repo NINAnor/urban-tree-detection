@@ -241,12 +241,8 @@ def deleteFields(in_table, keep_list):
     field_list = []
 
     for field in fieldObj_list:
-        if not field.required:
-            field_list.append(field.name)
-
-    for field_name in keep_list:
-        if field_name in field_list:
-            field_list.remove(field_name)   
+        if not field.required and field.name not in keep_list:
+            field_list.append(field.name)  
             
     print(f"Keep the fields: {keep_list}.")
     print(f"Delete the fields: {field_list}.")
