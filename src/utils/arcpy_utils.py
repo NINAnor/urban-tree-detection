@@ -225,5 +225,28 @@ def check_isNull(in_table:str, field:str) -> bool:
         else:
             arcpy.AddMessage("\tThe field contains null values. Recalculate...")
             return True
-        
+
+
+def deleteFields(in_table, keep_list):
+    """Deletes all fields from a table except required fields 
+    and those in the keep_list.
+
+    Args:
+        in_table (str): path to the input table
+        keep_list (str): list of fields to keep
+    """    
+    desc = arcpy.Describe(in_table)
+    fieldObj_list = arcpy.ListFields(in_table)
+
+    # Create an empty list that will be populated with field names        
+    field_list = []
+
+    for field in fieldObj_list:
+        if not field.required:
+            field_list.append(field.name)
+
+    if desc.dataType in keep_list:
+        field_list = field_list[1:]
+    print(f"Keep the fields: {field_list}.")
+    arcpy.DeleteField_management(in_table, field_list)
 

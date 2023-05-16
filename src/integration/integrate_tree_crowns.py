@@ -62,6 +62,11 @@ else:
         add_source="NO_SOURCE_INFO"
     )
 
+    # list of fields to be kept
+    keep_fields = ["tree_id", "geo_relation", "crown_id_laser"]
+    method = "KEEP_FIELDS"
+    arcpy.DeleteField_management(fc_extrapolation, keep_fields, "KEEP_FIELDS")
+    
 # --------------------------------------------------------------------------- #
 # create extrapolation dataset
 # --------------------------------------------------------------------------- #
@@ -77,4 +82,4 @@ else:
     # list of fields to be kept
     keep_fields = ["tree_id", "geo_relation", "crown_id_laser"]
     method = "KEEP_FIELDS"
-    arcpy.DeleteField_management(fc_extrapolation, keep_fields, "KEEP_FIELDS")
+    arcpy.DeleteField_management(fc_extrapolation, keep_fields, method)

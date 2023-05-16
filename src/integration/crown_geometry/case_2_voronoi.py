@@ -17,17 +17,23 @@ logger.setup_logger(logfile=True)
 logging.info(f'Split Case 2 treecrowns for <{MUNICIPALITY}> municipality using a Voronoi diagram.')
 
 # input data
-
-
-# input
-fc_case_1_2 = os.path.join(ds_joined_trees, "c1_c2_crowns") 
-fc_stem_in_situ = os.path.join(ds_input_trees, "stem_in_situ") 
-
-# output
 fc_case_2_stems = os.path.join(ds_joined_trees, "c2_stems") 
 fc_case_2_crowns = os.path.join(ds_joined_trees, "c2_crowns") 
 
-# output data 
+# clean layers 
+keep_list = ["tree_id","crown_id_laser","geo_relation"]
+
+au.deleteFields(
+    in_table=fc_case_2_stems,
+    keep_list= keep_list
+    )
+
+au.deleteFields(
+    in_table=fc_case_2_crowns,
+    keep_list= keep_list
+    )
+
+# # output data 
 fc_c2_crowns_voronoi = os.path.join(ds_joined_trees, "c2_crowns_voronoi") 
 if arcpy.Exists(fc_c2_crowns_voronoi):
     logging.info(f"Feature {os.path.basename(fc_c2_crowns_voronoi)} already exists. Continue...")
@@ -49,15 +55,9 @@ env.overwriteOutput = True
 env.outputCoordinateSystem = arcpy.SpatialReference(SPATIAL_REFERENCE)
 env.workspace = ds_joined_trees
 
-# set layers for analysis 
 polygon_layer = fc_case_2_crowns # CASE 2 tree crowns
 point_layer = fc_case_2_stems # CASE 2 tree stems 
 temp_layer = os.path.join(ds_joined_trees, "temp_crown") 
-
-# clean layers
-keep_fields = ["OBJECTID","tree_id","crown_id_laser","geo_relation"]
-arcpy.DeleteField_management(polygon_layer,keep_fields, "KEEP_FIELDS")
-arcpy.DeleteField_management(point_layer,keep_fields, "KEEP_FIELDS")
 
 # Create a feature layer from the input feature class
 arcpy.MakeFeatureLayer_management(point_layer, "point_lyr")
