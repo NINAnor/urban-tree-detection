@@ -28,7 +28,7 @@ ds_input_trees = os.path.join(URBAN_TREES_GDB, "input_trees")
 
 fc_stem_in_situ = os.path.join(URBAN_TREES_GDB, "input_trees", "stem_in_situ") # join
 fc_crown_laser = os.path.join(URBAN_TREES_GDB, "input_trees", "crown_laser") # target
-fc_joined_trees = os.path.join(URBAN_TREES_GDB, "joined_trees", "joined_trees_2") # putput
+fc_joined_trees = os.path.join(URBAN_TREES_GDB, "joined_trees", "joined_trees") # putput
 
 # env settings
 env.overwriteOutput = True

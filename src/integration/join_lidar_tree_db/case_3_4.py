@@ -103,11 +103,11 @@ else:
 
 
     id_field = "tree_id"
-    au.extractFeatures_byID(
-        target_feature=fc_stem_in_situ, 
-        id_feature=fc_case_3, 
-        output_feature=fc_case_3_stems, 
-        id_field = id_field)
+    # au.extractFeatures_byID(
+    #     target_feature=fc_stem_in_situ, 
+    #     id_feature=fc_case_3, 
+    #     output_feature=fc_case_3_stems, 
+    #     id_field = id_field)
     
 # --------------------------------------------------------------------------- #
 # CASE 4 (1:0) 
@@ -134,7 +134,6 @@ else:
         )
     logging.info(f'Case 4 selected and exported to {os.path.basename(fc_case_4)}')
 
-
 # --------------------------------------------------------------------------- #
 # Clean the results
 # --------------------------------------------------------------------------- #    
@@ -144,5 +143,5 @@ keep_fields = ["TARGET_FID", "JOIN_FID", "crown_id_laser", "tree_id", "geo_relat
 
 method = "KEEP_FIELDS"
 arcpy.DeleteField_management(fc_case_3,keep_fields, "KEEP_FIELDS")
-arcpy.DeleteField_management(fc_case_3_stems,keep_fields, "KEEP_FIELDS")
+#arcpy.DeleteField_management(fc_case_3_stems,keep_fields, "KEEP_FIELDS")
 arcpy.DeleteField_management(fc_case_4,keep_fields, "KEEP_FIELDS")
