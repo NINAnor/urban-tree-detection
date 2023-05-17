@@ -264,3 +264,27 @@ def deleteFields(in_table, out_table, keep_list):
     print(f"Delete the fields: {field_list}.")
     arcpy.DeleteField_management(out_table, field_list)
 
+def deleteDuplicates(table, field):
+    """
+    Delete duplicate records from a table based on a specified field.
+
+    Args:
+        table (str): path to the input table
+        field (str): field name to check for duplicates
+    """   
+    # Create a list to store the unique tree IDs
+    unique_tree_ids = []
+    
+    # Create a search cursor to iterate over the table
+    with arcpy.da.SearchCursor(table, field) as cursor:
+        for row in cursor:
+            tree_id = row[0]
+        # Check if the tree ID is already in the unique_tree_ids list
+            if tree_id not in unique_tree_ids:
+                unique_tree_ids.append(tree_id)
+
+    # Use DeleteIdentical_management to delete duplicates based on tree_id
+    arcpy.DeleteIdentical_management(table, field)
+    
+    # Print the unique tree IDs that remain in the table
+    print(f"Unique Tree IDs: {len(unique_tree_ids)}")

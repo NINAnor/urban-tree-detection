@@ -51,6 +51,11 @@ with arcpy.da.SearchCursor(polygon_layer, fields) as cursor:
         tmp_thiessen_lyr = os.path.join(ds_joined_trees,"thiessen")
         tmp_split_crown_lyr = os.path.join(ds_joined_trees,"temp_split_crown") 
         
+        # delete tmp/memory layers
+        arcpy.Delete_management(tmp_crown_lyr)
+        arcpy.Delete_management(tmp_thiessen_lyr)  
+        arcpy.Delete_management(tmp_split_crown_lyr) 
+        
         logging.info(f"START SPLITTING TREECROWN, OBJECTID: {row[0]}, crown_id: {row[2]}")
         
         # select tree crown by OBJECTID
@@ -87,8 +92,19 @@ with arcpy.da.SearchCursor(polygon_layer, fields) as cursor:
         arcpy.Delete_management(tmp_crown_lyr)
         arcpy.Delete_management(tmp_thiessen_lyr)  
         arcpy.Delete_management(tmp_split_crown_lyr)       
-        break
-    
-    
+        #break
+
+# delete duplicate crowns
+table =  fc_c2_crowns_voronoi 
+field = "tree_id"  
+au.deleteDuplicates(table, field)
+
+
+
+
+
+
+
+
 
 
