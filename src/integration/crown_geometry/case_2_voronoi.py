@@ -35,10 +35,22 @@ temp_layer = os.path.join(ds_joined_trees, "temp_crown")
 
 # Create a feature layer from the input feature class
 arcpy.MakeFeatureLayer_management(point_layer, "point_lyr")
+arcpy.MakeFeatureLayer_management(polygon_layer, "polygon_lyr")
+
+# delete duplicate crowns
+table =  "polygon_lyr" 
+field = "crown_id_laser"  
+au.deleteDuplicates(table, field)
+
+
+count_stems = int(arcpy.GetCount_management("point_lyr").getOutput(0))
+count_crowns = int(arcpy.GetCount_management("polygon_lyr").getOutput(0))
+logging.info(f"Count of Case 2 Stems: {count_stems}")
+logging.info(f"Count of Case 2 Crowns: {count_crowns}")
 
 # Split each tree crown based on the number of stems. 
 fields = ["OBJECTID", "tree_id", "crown_id_laser"]
-with arcpy.da.SearchCursor(polygon_layer, fields) as cursor:
+with arcpy.da.SearchCursor("polygon_lyr", fields) as cursor:
     for row in cursor:
         
         # create memory layers
@@ -60,7 +72,7 @@ with arcpy.da.SearchCursor(polygon_layer, fields) as cursor:
         
         # select tree crown by OBJECTID
         polygon_id = row[0]
-        arcpy.MakeFeatureLayer_management(polygon_layer, "selected_polygon", f"OBJECTID = {polygon_id}")
+        arcpy.MakeFeatureLayer_management("polygon_lyr", "selected_polygon", f"OBJECTID = {polygon_id}")
 
         # Select stem points that intersect with the tree crown
         arcpy.SelectLayerByLocation_management("point_lyr", "INTERSECT", "selected_polygon") # stem points
@@ -99,8 +111,8 @@ table =  fc_c2_crowns_voronoi
 field = "tree_id"  
 au.deleteDuplicates(table, field)
 
-
-
+count_split_crowns = int(arcpy.GetCount_management(fc_c2_crowns_voronoi).getOutput(0))
+logging.info(f"Count of splitted crowns: {count_split_crowns}")
 
 
 
