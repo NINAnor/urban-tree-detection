@@ -287,4 +287,4 @@ def deleteDuplicates(table, field):
     arcpy.DeleteIdentical_management(table, field)
     
     # Print the unique tree IDs that remain in the table
-    print(f"Unique Tree IDs: {len(unique_tree_ids)}")
+    #print(f"Unique Tree IDs: {len(unique_tree_ids)}")

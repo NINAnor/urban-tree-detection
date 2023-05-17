@@ -31,26 +31,26 @@ env.workspace = ds_joined_trees
 
 polygon_layer = fc_case_2_crowns # CASE 2 tree crowns
 point_layer = fc_case_2_stems # CASE 2 tree stems 
-temp_layer = os.path.join(ds_joined_trees, "temp_crown") 
+temp_c2_unique_crowns = os.path.join(ds_joined_trees, "temp_c2_unique_crowns") 
 
 # Create a feature layer from the input feature class
 arcpy.MakeFeatureLayer_management(point_layer, "point_lyr")
-arcpy.MakeFeatureLayer_management(polygon_layer, "polygon_lyr")
+arcpy.CopyFeatures_management(polygon_layer, temp_c2_unique_crowns) # tree crown  
 
 # delete duplicate crowns
-table =  "polygon_lyr" 
+table =  temp_c2_unique_crowns
 field = "crown_id_laser"  
 au.deleteDuplicates(table, field)
 
 
 count_stems = int(arcpy.GetCount_management("point_lyr").getOutput(0))
-count_crowns = int(arcpy.GetCount_management("polygon_lyr").getOutput(0))
+count_crowns = int(arcpy.GetCount_management(temp_c2_unique_crowns).getOutput(0))
 logging.info(f"Count of Case 2 Stems: {count_stems}")
 logging.info(f"Count of Case 2 Crowns: {count_crowns}")
 
 # Split each tree crown based on the number of stems. 
 fields = ["OBJECTID", "tree_id", "crown_id_laser"]
-with arcpy.da.SearchCursor("polygon_lyr", fields) as cursor:
+with arcpy.da.SearchCursor(polygon_layer, fields) as cursor:
     for row in cursor:
         
         # create memory layers
@@ -72,10 +72,10 @@ with arcpy.da.SearchCursor("polygon_lyr", fields) as cursor:
         
         # select tree crown by OBJECTID
         polygon_id = row[0]
-        arcpy.MakeFeatureLayer_management("polygon_lyr", "selected_polygon", f"OBJECTID = {polygon_id}")
+        arcpy.MakeFeatureLayer_management(polygon_layer, "selected_polygon", f"OBJECTID = {polygon_id}")
 
         # Select stem points that intersect with the tree crown
-        arcpy.SelectLayerByLocation_management("point_lyr", "INTERSECT", "selected_polygon") # stem points
+        arcpy.SelectLayerByLocation_management("point_lyr", "WITHIN", "selected_polygon") # stem points
         arcpy.CopyFeatures_management("selected_polygon", tmp_crown_lyr) # tree crown  
 
         # log the tree_id values of the selected stem points
