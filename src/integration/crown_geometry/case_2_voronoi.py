@@ -60,18 +60,18 @@ with arcpy.da.SearchCursor(polygon_layer, fields) as cursor:
         # mem_thiessen_lyr = "in_memory/thiessen"
         # mem_split_crown_lyr = "in_memory/temp_split_crown" 
         
-        tmp_crown_lyr = os.path.join(ds_joined_trees, "temp_crown") 
-        tmp_thiessen_lyr = os.path.join(ds_joined_trees,"thiessen")
-        tmp_split_crown_lyr = os.path.join(ds_joined_trees,"temp_split_crown") 
+        # select tree crown by crown_id_laser
+        polygon_id = str(row[2])
+        print(polygon_id)
+        
+        tmp_crown_lyr = os.path.join(ds_joined_trees, "temp_crown_" + polygon_id) 
+        tmp_thiessen_lyr = os.path.join(ds_joined_trees,"temp_thiessen_"  + polygon_id)
+        tmp_split_crown_lyr = os.path.join(ds_joined_trees,"temp_split_crown_" + polygon_id) 
         
         # delete tmp/memory layers
         arcpy.Delete_management(tmp_crown_lyr)
         arcpy.Delete_management(tmp_thiessen_lyr)  
         arcpy.Delete_management(tmp_split_crown_lyr) 
-
-        # select tree crown by OBJECTID
-        polygon_id = str(row[2])
-        #polygon_id = 35
                 
         logging.info(f"START SPLITTING TREECROWN, OBJECTID: {row[0]}, crown_id: {row[2]}")
         arcpy.MakeFeatureLayer_management(polygon_layer, "selected_polygon", f"CROWN_ID_LASER = {polygon_id}")
@@ -80,23 +80,29 @@ with arcpy.da.SearchCursor(polygon_layer, fields) as cursor:
         arcpy.CopyFeatures_management("selected_polygon", tmp_crown_lyr) # tree crown
         #arcpy.SelectLayerByLocation_management("point_lyr", "WITHIN", tmp_crown_lyr) # stem points
         #arcpy.MakeFeatureLayer_management(point_layer, "selected_point", f"CROWN_ID_LASER = {polygon_id}")
-        arcpy.management.SelectLayerByAttribute(
+        selected_points = arcpy.management.SelectLayerByAttribute(
             in_layer_or_view="point_lyr",
             selection_type="NEW_SELECTION",
             where_clause=f"crown_id_laser = {polygon_id}",
             invert_where_clause=None
-        )
+            )
         # log the tree_id values of the selected stem points
         fields_pnt = ["OBJECTID", "tree_id", "crown_id_laser"]
-        with arcpy.da.SearchCursor("point_lyr", fields_pnt) as cursor:
+        with arcpy.da.SearchCursor(selected_points, fields_pnt) as cursor:
             for row in cursor:
                 logging.info(f"selected_point: {row[0]}, tree_id: {row[1]}, crown_id_laser: {row[2]}")
 
 
         #split the treecrown using the thiessen polygons
         env.extent = tmp_crown_lyr # tree crown area 
-        arcpy.CreateThiessenPolygons_analysis("point_lyr", tmp_thiessen_lyr) 
+        env.overwriteOutput = True
+        arcpy.CreateThiessenPolygons_analysis(selected_points, tmp_thiessen_lyr) 
         arcpy.Intersect_analysis([tmp_thiessen_lyr, tmp_crown_lyr], tmp_split_crown_lyr)
+
+        with arcpy.da.SearchCursor(tmp_split_crown_lyr, fields_pnt) as cursor:
+            for row in cursor:
+                logging.info(f"selected_point that will be appended: {row[0]}, tree_id: {row[1]}, crown_id_laser: {row[2]}")
+        
         arcpy.Append_management(
             inputs=tmp_split_crown_lyr,
             target= fc_c2_crowns_voronoi, 
@@ -107,22 +113,16 @@ with arcpy.da.SearchCursor(polygon_layer, fields) as cursor:
             match_fields=None,
             update_geometry="NOT_UPDATE_GEOMETRY"
             )
-        
-        # delete tmp/memory layers
-        arcpy.Delete_management(tmp_crown_lyr)
-        arcpy.Delete_management(tmp_thiessen_lyr)  
-        arcpy.Delete_management(tmp_split_crown_lyr)
-        #arcpy.SelectLayerByAttribute_management("point_lyr", "CLEAR_SELECTION")
+
+        with arcpy.da.SearchCursor(fc_c2_crowns_voronoi, fields_pnt) as cursor:
+            for row in cursor:
+                logging.info(f"Appended crowns: {row[0]}, tree_id: {row[1]}, crown_id_laser: {row[2]}")
+              
+        # clear selection 
+        arcpy.SelectLayerByAttribute_management("point_lyr", "CLEAR_SELECTION")
        
         #break
 
-# delete duplicate crowns
-table =  fc_c2_crowns_voronoi 
-field = "tree_id"  
-#au.deleteDuplicates(table, field)
-
-count_split_crowns = int(arcpy.GetCount_management(fc_c2_crowns_voronoi).getOutput(0))
-logging.info(f"Count of splitted crowns: {count_split_crowns}")
 
 
 
