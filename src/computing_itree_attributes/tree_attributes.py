@@ -18,6 +18,8 @@ laser_trees.attr_crownVolume()
  
 """
 
+## TODO works manually in arcgispro make it automatic!
+
 import arcpy
 import math  
 from arcpy import env
@@ -59,17 +61,33 @@ env.workspace = r"C:\Users\zofie.cimburova\NINA\15885100 - SIS - 2018 - URBAN Na
 # POLY_AREA = area of the crown polygon (shape_area)
 # PERIMETER = perimeter of the crown polygon (shape_length)
 
+
+
+
+
+
+arcpy.management.MinimumBoundingGeometry(
+    in_features="training_crowns_2205",
+    out_feature_class=r"P:\152022_itree_eco_ifront_synliggjore_trars_rolle_i_okosyst\02_arcgispro\prepare_iTree_Eco\temp.gdb\training_crowns_2205_MB_fields",
+    geometry_type="ENVELOPE",
+    group_option="NONE",
+    group_field=None,
+    mbg_fields_option="MBG_FIELDS"
+)
 # 11. Compute N_S_WIDTH, E_W_WIDTH
+
+
+
 v_envelope = "temp_envelope"
 arcpy.MinimumBoundingGeometry_management(v_crowns_modelled, v_envelope, "ENVELOPE", "NONE", "", "MBG_FIELDS")
 
 AddFieldIfNotexists(v_envelope, "Angle", "Double")
 arcpy.CalculatePolygonMainAngle_cartography (v_envelope, "Angle", "GEOGRAPHIC")
 
-AddFieldIfNotexists(v_envelope, "N_S_WIDTH", "Double")
-AddFieldIfNotexists(v_envelope, "E_W_WIDTH", "Double")
+AddFieldIfNotexists(v_envelope, "N_S_WIDTH", "Double") #NS_width
+AddFieldIfNotexists(v_envelope, "E_W_WIDTH", "Double") #EW_width_
 codeblock = """def calculateEnvelope(envelope_width, envelope_length, envelope_angle, computed_measure):
-    eps = 1e-2
+    eps = 1e-1 # 0.1 degree
     if abs(envelope_angle+90) < eps:
         if computed_measure == "N_S":
             return envelope_length
