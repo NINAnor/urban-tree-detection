@@ -1,27 +1,18 @@
 import os
-import sys
+
 import shutil
 import logging
 import dotenv
 from dotenv import dotenv_values
 
-kommune=sys.argv[1]
+from src import RAW_PATH, MUNICIPALITY
 
-# search for .env file in USER directory 
-# user_dir = C:\\USERS\\<<firstname.lastname>>
-user_dir = os.path.join(os.path.expanduser("~"))
-dotenv_path = os.path.join(user_dir, 'trekroner.env')
+kommune= MUNICIPALITY
 
-dotenv.load_dotenv(dotenv_path)
-config = dotenv_values(dotenv_path)
-
-# project data path variables 
-DATA_PATH = os.getenv('DATA_PATH')
-
-input_folder = os.path.join(DATA_PATH , kommune, "raw", "laz", "all")
-output_folder_1 = os.path.join(DATA_PATH , kommune, "raw", "laz", "inside_BuildUpZone")
-output_folder_2 = os.path.join(DATA_PATH , kommune, "raw", "laz", "outside_BuildUpZone")
-lookup_file = os.path.join(DATA_PATH , kommune, "raw", kommune+"_LUT.csv")
+input_folder = os.path.join(RAW_PATH, "laz", "all")
+output_folder_1 = os.path.join(RAW_PATH, "laz", "inside_BuildUpZone")
+output_folder_2 = os.path.join(RAW_PATH, "laz", "outside_BuildUpZone")
+lookup_file = os.path.join(RAW_PATH, kommune+"_LUT.csv")
 
 logger = logging.getLogger(__name__)
 #print(input_folder)

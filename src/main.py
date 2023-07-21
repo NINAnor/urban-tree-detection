@@ -1,20 +1,24 @@
+import logging
+
 from src import *
-#from src import join_and_copy
-
-## TODO add the other 4 files as subprocesses to make_data
-kommune = input("Enter the municipality: ")
-
-## PREPARE LIDAR DATA
-prepare_lidar.main(kommune)
-
-## PREPARE KOMMUNE DATA
-# check if filgdb exists with layers and fieldnames
-# manualy prepare in arcgis 
+import prepare_lidar
+import segment_trees
 
 
-## RUN SEGMENTATION AND MERGE
-#watershed_tree --> TODO create subproccess function
-## MASK BUILDINGS AND SEA AND ADD LIDAR ATTR.
-#watershed_tree --> TODO create subproccess function
+# set up logger
+logger.setup_logger(logfile=True)
+logger = logging.getLogger(__name__)
 
-## JOIN
+# check municipality
+confirm_municipality = input(f"Is '{MUNICIPALITY}' the correct municipality? (y/n): ").strip().lower()
+if confirm_municipality != 'y':
+    logger.info("User disagreed with the municipality.")
+    exit()
+
+# run scripts
+# TODO add subroutines
+prepare_lidar.main(MUNICIPALITY)
+# create main()
+segment_trees.main()
+
+
