@@ -28,11 +28,16 @@ The code is build in an ArcGIS Pro 3.1.0. conda environment with 3D analyst, ima
 Here are the steps to create a conda env compatible with ArcGIS Pro 3.0.1 and to install the local project package `treeDetection`:
 
 1. Create a new conda environment with the necessary dependencies described in `environment.yml`
+- Open the Anaconda Prompt and run the following commands:
     
+        ```console
         cd /d P:\%project_folder%\treeDetection
         cd ...\urban-treeDetection
         conda env create -f environment.yml
         conda activate treeDetection
+        ```
+ 
+- OR clone your ArcGIS Pro 3.0.1 base env and manually install the dependencies listed in `requirements.txt` using conda or pip. [ArcGIS Pro | Clone an environment](<https://pro.arcgis.com/en/pro-app/latest/arcpy/get-started/clone-an-environment.htm>)
 
 2. Install the treeDetection (urban-treeDetection/src) as a local package using pip:
 
