@@ -182,7 +182,8 @@ src/data/test/*
 src/data/prepare_tree_db/test/*
 src/data/join_lidar_tree_db/test/*
 src/models/test/*
-src/visualizations/test/
+src/extrapolation/test/*
+src/visualisations/test/*
 src/log/*
 /test/*
 !test/.gitkeep 
