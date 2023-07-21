@@ -2,13 +2,7 @@ import arcpy
 import os 
 
 # project pacakge read the readme file on how to install it properly
-from src import join_and_copy
-from src import addField_ifNotExists
-from src import calculateField_ifEmpty
-from src import check_isNull
-
-#print("test local import")
-
+from src import arcpy_utils as au
         
 # ------------------------------------------------------ #
 # Class "LaserAttributes"
@@ -63,12 +57,12 @@ class LaserAttributes:
         
         # Store information on neighbourhood code
 
-        addField_ifNotExists(self.crown_filename, "lidar_tile", "TEXT")
-        calculateField_ifEmpty(self.crown_filename, "lidar_tile", format_tile_code)
+        au.addField_ifNotExists(self.crown_filename, "lidar_tile", "TEXT")
+        au.calculateField_ifEmpty(self.crown_filename, "lidar_tile", format_tile_code)
         
         # TODO delete calcField if fucntion works
         #arcpy.CalculateField_management(self.crown_filename, "lidar_tile", format_tile_code)
-        #addField_ifNotExists(self.top_filename, "lidar_tile", "TEXT")
+        #au.addField_ifNotExists(self.top_filename, "lidar_tile", "TEXT")
         #arcpy.CalculateField_management(self.top_filename, "lidar_tile", format_tile_code)
         
         # Delete useless attributes
@@ -93,10 +87,10 @@ class LaserAttributes:
         arcpy.AddMessage(f"\tAdding the attribute <<crown_id_laser>> using the unique ObjectID number... ")
         in_table = self.crown_filename      
         field = "crown_id_laser"
-        addField_ifNotExists(in_table, field, "LONG")
+        au.addField_ifNotExists(in_table, field, "LONG")
         
         # Check if the crown_id_laser field contains any null or empty values
-        if check_isNull(in_table, field) == True:
+        if au.check_isNull(in_table, field) == True:
             with arcpy.da.UpdateCursor(in_table, ["OBJECTID", field]) as cursor:
                 for row in cursor:
                     row[1] = row[0]
@@ -128,10 +122,10 @@ class LaserAttributes:
         field = "crown_diam"
             
         arcpy.AddMessage(f"\tAdding the attribute <<crown_diam>>... ")
-        addField_ifNotExists(in_table, field, "FLOAT")
+        au.addField_ifNotExists(in_table, field, "FLOAT")
         
-        if check_isNull(in_table, field) == True:
-            join_and_copy(
+        if au.check_isNull(in_table, field) == True:
+            au.join_and_copy(
                 t_dest=self.crown_filename,
                 join_a_dest= "crown_id_laser", 
                 t_src= v_mbg, 
@@ -168,16 +162,16 @@ class LaserAttributes:
             expression_area = "float(!SHAPE.area@squaremeters!) * {}".format(conversion_factor)
             expression_perimeter = "float(!SHAPE.length@meters!) * {}".format(conversion_factor)
 
-        addField_ifNotExists(self.crown_filename, "crown_area", "FLOAT")
-        calculateField_ifEmpty(self.crown_filename, "crown_area", expression_area)
+        au.addField_ifNotExists(self.crown_filename, "crown_area", "FLOAT")
+        au.calculateField_ifEmpty(self.crown_filename, "crown_area", expression_area)
         #arcpy.CalculateField_management(self.crown_filename, "crown_area", expression_area)
 
         # Compute crown perimeter
         arcpy.AddMessage("\n\tATTRIBUTE | crown_peri:")
         arcpy.AddMessage(f"\tComputing the crown perimeter by using the shape length... ")
         arcpy.AddMessage(f"\tAdding the attribute <<crown_peri>>... ")
-        addField_ifNotExists(self.crown_filename, "crown_peri", "FLOAT")
-        calculateField_ifEmpty(self.crown_filename, "crown_peri", expression_perimeter)
+        au.addField_ifNotExists(self.crown_filename, "crown_peri", "FLOAT")
+        au.calculateField_ifEmpty(self.crown_filename, "crown_peri", expression_perimeter)
         #arcpy.CalculateField_management(self.crown_filename, "crown_peri", expression_perimeter)
 
     # join tree crown id. to tree points
@@ -186,7 +180,7 @@ class LaserAttributes:
         Joins the attribtue 'crown_id_laser' (LONG) to the top feature class. 
         """
         
-        # temporary ID for tree points to avoid issues with join_and_copy()
+        # temporary ID for tree points to avoid issues with au.join_and_copy()
         arcpy.AddMessage(f"\tAdding a temporary id 'top_id_laser' using ObjectID to tree top feature class... ")
         arcpy.AddField_management(self.top_filename, "tmp_id", "LONG") 
         with arcpy.da.UpdateCursor(self.top_filename, ["OBJECTID", "tmp_id"]) as cursor:
@@ -208,7 +202,7 @@ class LaserAttributes:
         
         # Assign tree crown ID to tree points
         arcpy.AddField_management(self.top_filename, "crown_id_laser", "LONG")
-        join_and_copy(
+        au.join_and_copy(
             self.top_filename, 
             "tmp_id", 
             v_join, 
@@ -230,13 +224,13 @@ class LaserAttributes:
         
         arcpy.AddMessage("\t\tJOIN ATTRIBUTE | tree_heigth and tree_altit to crown feature class:")
         arcpy.AddMessage(f"\tJoining the tree top attributes: tree_height and tree_altit to the treecrown polygons... ")
-        addField_ifNotExists(self.crown_filename, "tree_height", "FLOAT")
-        addField_ifNotExists(self.crown_filename, "tree_altit", "FLOAT")
+        au.addField_ifNotExists(self.crown_filename, "tree_height", "FLOAT")
+        au.addField_ifNotExists(self.crown_filename, "tree_altit", "FLOAT")
         
         # Check if the  field contains any null or empty values
-        if check_isNull(self.crown_filename, "tree_height") or check_isNull(self.crown_filename, "tree_altit") == True:
+        if au.check_isNull(self.crown_filename, "tree_height") or au.check_isNull(self.crown_filename, "tree_altit") == True:
             # populate field with join
-            join_and_copy(
+            au.join_and_copy(
                 self.crown_filename, 
                 "crown_id_laser", 
                 self.top_filename, 
@@ -253,14 +247,14 @@ class LaserAttributes:
         Adds the attribute 'tree_volume' (FlOAT) to the crown feature class. 
         """
         
-        addField_ifNotExists(self.crown_filename, "tree_volume", "FLOAT")
+        au.addField_ifNotExists(self.crown_filename, "tree_volume", "FLOAT")
         # Calculate tree volume
         formula = str("tree volume =(1/3)π * (crown diameter/2)^2 * tree height")
         arcpy.AddMessage(f"\tComputing the crown volume by using the formula: \n\t{formula}")
 
         
         expression = "(1.0/3.0) * math.pi * ( !crown_diam! /2.0 ) * ( !crown_diam! /2.0) * float(!tree_height!)"
-        calculateField_ifEmpty(
+        au.calculateField_ifEmpty(
             in_table=self.crown_filename,
             field="tree_volume", 
             expression=expression,

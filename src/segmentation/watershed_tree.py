@@ -34,7 +34,6 @@ import tree
 import select_area
 from compute_attribute import LaserAttributes
 
-
 # local sub-package utils
 from src import arcpy_utils as au
 from src import (MUNICIPALITY, TOOL_PATH, DATA_PATH, INTERIM_PATH)
@@ -42,6 +41,7 @@ from src import logger
 
 # set the municipality (kommune) to be analyzed
 kommune = MUNICIPALITY
+
 # TODO move to time_config file
 current_datetime = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
 # ------------------------------------------------------ #
