@@ -37,6 +37,7 @@ AR5_LANDUSE_PATH = config['paths']['ar5_landuse']
 
 # get project data paths 
 DATA_PATH = config['paths']['data_path']
+TOOL_PATH = config['paths']['tool_path']
 RAW_PATH = os.path.join(DATA_PATH, MUNICIPALITY, 'raw')
 INTERIM_PATH = os.path.join(DATA_PATH, MUNICIPALITY, 'interim')
 PROCESSED_PATH = os.path.join(DATA_PATH, MUNICIPALITY, 'processed')

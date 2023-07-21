@@ -1,20 +1,15 @@
 # github project to do list
-
-- clean test scripts 
-    - treeDetection/test
-    - data/test
-- incoporate logger module
-- JOIN 
-    - test_selectby_Case.py
-- REFACTOR GITHUB AND DATA LAYERS 
-    - all names in english 
-    - leveranse dataset translated to NORWEGIAN 
-    
-- Mover arcpy helper functions to utils/arcpy_utils.py
 - set time functions in sep module: 
 current_datetime = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
 
-- TODO PRIORITY
-- divide case 1 from case 2 
-- delete all classiyf type test files
-- Model geometry!
+- TODO 
+- create clean script in integration that cleans all data there 
+- Model geometry (not nec. for bodo but might be in the future)
+
+- FINAL STEP REFACTOR GITHUB AND DATA LAYERS 
+    - move functions to modules/classes
+    - duplicates
+    - all names in english 
+    - leveranse dataset translated to NORWEGIAN 
+    - incorporate FIELD MAPPING FOR JOINING
+    
