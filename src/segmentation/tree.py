@@ -2,6 +2,12 @@ import os
 import arcpy
 from arcpy import env
 from arcpy.sa import *
+import logging
+
+from src import logger
+
+logger.setup_logger(logfile=True)
+logger = logging.getLogger(__name__)
 
 # ------------------------------------------------------ #
 # 1.1 Create LAS Dataset
@@ -16,7 +22,7 @@ def create_lasDataset(l_las_folder: str, d_las: str):
     - d_las (str): The output path to the LAS dataset.
     """
     
-    arcpy.AddMessage("\t\tCreating LAS Dataset...")
+    logger.info("\t\tCreating LAS Dataset...")
 
     arcpy.CreateLasDataset_management(
         input=l_las_folder,
@@ -36,7 +42,7 @@ def create_DTM(d_las, r_dtm, spatial_resolution, study_area_path):
         r_dtm (_type_): _description_
         spatial_resolution (_type_): _description_
     """    
-    arcpy.AddMessage("\t\tCreating DTM ({}x{}m) ...".format(spatial_resolution, spatial_resolution))
+    logger.info("\t\tCreating DTM ({}x{}m) ...".format(spatial_resolution, spatial_resolution))
 
     # select DTM points (class 2 = ground points)
     l_dtm = arcpy.CreateUniqueName('dtm_lyr')
@@ -66,7 +72,7 @@ def create_DTM(d_las, r_dtm, spatial_resolution, study_area_path):
         z_factor = 1
     )
  
-    arcpy.AddMessage("\t\tMasking the DTM with the study area extent...")
+    logger.info("\t\tMasking the DTM with the study area extent...")
     r_masked = arcpy.sa.ExtractByMask(
         in_raster=temp,
         in_mask_data= study_area_path, 
@@ -84,7 +90,7 @@ def create_DSM(d_las, r_dsm, spatial_resolution, class_code, return_values, stud
         class_code (_type_): _description_
         return_values (_type_): _description_
     """    
-    arcpy.AddMessage("\t\tCreating DSM ({}x{}m) ...".format(spatial_resolution, spatial_resolution))
+    logger.info("\t\tCreating DSM ({}x{}m) ...".format(spatial_resolution, spatial_resolution))
 
     # select DSM points (= surface)
     l_dsm = arcpy.CreateUniqueName('dsm_lyr')
@@ -101,7 +107,6 @@ def create_DSM(d_las, r_dsm, spatial_resolution, class_code, return_values, stud
     )
 
     # convert to DSM raster
-    # convert to DTM raster
     temp = os.path.join(r_dsm + "_temp")
     
     arcpy.conversion.LasDatasetToRaster(
@@ -115,7 +120,7 @@ def create_DSM(d_las, r_dsm, spatial_resolution, class_code, return_values, stud
         z_factor = 1
     )
 
-    arcpy.AddMessage("\t\tMasking the DSM with the study area extent...")
+    logger.info("\t\tMasking the DSM with the study area extent...")
     r_masked = arcpy.sa.ExtractByMask(
         in_raster=temp,
         in_mask_data= study_area_path, 
@@ -131,7 +136,7 @@ def create_CHM(r_dtm, r_dsm, r_chm):
         r_dsm (_type_): _description_
         r_chm (_type_): _description_
     """    
-    arcpy.AddMessage("\t\tCreating CHM...")
+    logger.info("\t\tCreating CHM...")
     arcpy.gp.RasterCalculator_sa(
         '"{}"-"{}"'.format(r_dsm, r_dtm), 
         r_chm
@@ -149,7 +154,7 @@ def create_RGB(d_las: str, r_rgb: str, study_area_path: str, spatial_resolution:
         d_las (str): The path to the LAS dataset. 
         r_rgb (str): The output path to the RGB raster.  
     """    
-    arcpy.AddMessage("\t\tCreating RGB image...")
+    logger.info("\t\tCreating RGB image...")
     
     temp = os.path.join(r_rgb + "_temp")
     arcpy.LasDatasetToRaster_conversion(
@@ -163,7 +168,7 @@ def create_RGB(d_las: str, r_rgb: str, study_area_path: str, spatial_resolution:
         z_factor = "1"
     )
     
-    arcpy.AddMessage("\t\tMasking the RGB image with the study area extent...")
+    logger.info("\t\tMasking the RGB image with the study area extent...")
     r_masked = arcpy.sa.ExtractByMask(
         in_raster=temp,
         in_mask_data= study_area_path, 
@@ -180,7 +185,7 @@ def create_vegMask(r_rgb: str, r_tgi: str):
         r_rgb (str): The path to the RGB raster.
         r_tgi (str): The output path to TGI vegetation mask raster. 
     """    
-    arcpy.AddMessage("\t\tCreating vegetation mask...")
+    logger.info("\t\tCreating vegetation mask...")
 
     band_1 = arcpy.sa.Raster(r_rgb + "\\Band_1")
     band_2 = arcpy.sa.Raster(r_rgb + "\\Band_2")
@@ -197,7 +202,7 @@ def tgi_toVector(r_tgi, v_tgi):
         r_tgi (_type_): _description_
         v_tgi (_type_): _description_
     """    
-    arcpy.AddMessage("\t\tVectorizing vegetation mask...")
+    logger.info("\t\tVectorizing vegetation mask...")
     
     arcpy.RasterToPolygon_conversion(
         in_raster = r_tgi,
@@ -221,13 +226,27 @@ def extract_vegMask(v_tgi, r_chm, r_chm_tgi):
         r_chm (_type_): _description_
         r_chm_tgi (_type_): _description_
     """    
-    arcpy.AddMessage("\t\tRefining CHM with vegetation mask...")
+    logger.info("\t\tRefining CHM with vegetation mask...")
     arcpy.gp.ExtractByMask_sa(
         r_chm, 
         v_tgi, 
         r_chm_tgi)
 
-def extract_minHeight(input_chm, r_chm_h, min_heigth):
+def extract_Mask(mask_path, input_chm, r_chm_mask):
+    """_summary_
+
+    Args:
+        v_tgi (_type_): _description_
+        r_chm (_type_): _description_
+        r_chm_tgi (_type_): _description_
+    """    
+    logger.info("\t\tMasking CHM with municipality specific mask...")
+    arcpy.gp.ExtractByMask_sa(
+        input_chm, 
+        mask_path, 
+        r_chm_mask)
+
+def extract_minHeight(r_chm_mask, r_chm_h, min_heigth):
     """_summary_
 
     Args:
@@ -235,12 +254,34 @@ def extract_minHeight(input_chm, r_chm_h, min_heigth):
         r_chm_h (_type_): _description_
         min_heigth (_type_): _description_
     """    
-    arcpy.AddMessage("\t\tFiltering CHM by minimum height...")
+    logger.info("\t\tFiltering CHM by minimum height...")
     arcpy.gp.ExtractByAttributes_sa(
-        input_chm, 
+        r_chm_mask, 
         "Value >= {}".format(min_heigth), 
         r_chm_h
     )
+    
+def focal_meanFilter(r_chm_h,chm_noise_removal):
+    """_summary_
+
+    Args:
+        r_chm_h (raster): input path to height filter chm raster
+        chm_noise_removal (raster): ouput path to noise removal chm raster
+    """       
+    outFocalStat = arcpy.ia.FocalStatistics(
+        in_raster=r_chm_h,
+        neighborhood="Rectangle 1 1 MAP",
+        statistics_type="MEAN",
+        ignore_nodata="NODATA",
+        percentile_value=90
+        )
+    
+    outFocalStat.save(chm_noise_removal)
+    
+    return 
+
+
+
 
     
 def focal_maxFilter(r_chm_h, r_chm_smooth, radius):
@@ -251,7 +292,7 @@ def focal_maxFilter(r_chm_h, r_chm_smooth, radius):
         r_chm_smooth (_type_): _description_
         radius (_type_): _description_
     """    
-    arcpy.AddMessage("\t\tRefining CHM by a focal maximum filter with a {} MAP radius...".format(radius))
+    logger.info("\t\tRefining CHM by a focal maximum filter with a {} MAP radius...".format(radius))
     neighborhood = NbrCircle(radius, "MAP")
     outFocalStat= FocalStatistics(
         r_chm_h,
@@ -271,7 +312,7 @@ def watershed_segmentation(r_chm_smooth,r_chm_flip,r_flowdir,r_sinks,r_watershed
 
     # flip CHM
     def flip_CHM(r_chm_smooth):
-        arcpy.AddMessage("\t\tFlipping CHM...")
+        logger.info("\t\tFlipping CHM...")
         arcpy.gp.RasterCalculator_sa(
             '"{}"*(-1)'.format(r_chm_smooth), 
             r_chm_flip
@@ -280,7 +321,7 @@ def watershed_segmentation(r_chm_smooth,r_chm_flip,r_flowdir,r_sinks,r_watershed
     
     # Compute flow direction
     def comp_flowDir(r_chm_flip):
-        arcpy.AddMessage("\t\tComputing flow direction...")
+        logger.info("\t\tComputing flow direction...")
         arcpy.gp.FlowDirection_sa(
             r_chm_flip, 
             r_flowdir
@@ -290,7 +331,7 @@ def watershed_segmentation(r_chm_smooth,r_chm_flip,r_flowdir,r_sinks,r_watershed
     
     # Identify sinks
     def identify_sinks(r_flowdir):
-        arcpy.AddMessage("\t\tIdentifying sinks...")
+        logger.info("\t\tIdentifying sinks...")
         arcpy.gp.Sink_sa(
             r_flowdir, 
             r_sinks
@@ -299,7 +340,7 @@ def watershed_segmentation(r_chm_smooth,r_chm_flip,r_flowdir,r_sinks,r_watershed
     
     # identify watersheds 
     def identify_watersheds(r_flowdir, r_sinks):
-        arcpy.AddMessage("\t\tIdentifying watersheds...")
+        logger.info("\t\tIdentifying watersheds...")
         arcpy.gp.Watershed_sa(
             r_flowdir,
             r_sinks,
@@ -321,42 +362,25 @@ def watershed_segmentation(r_chm_smooth,r_chm_flip,r_flowdir,r_sinks,r_watershed
         
 # ------------------------------------------------------ #
 # 1.6 IDENTIFY TREE TOPS 
+# step 7 perform_tree_detection_v2 (version 1 not used)
 # ------------------------------------------------------ #
 
 def identify_treeTops(r_sinks, r_focflow, v_treetop_poly,v_treetop_singlepoly, r_chm_h, r_dsm, v_treetop_pnt):
     
     # Identify tree tops (I) by identifying focal flow
     def identify_focalFlow():
-        arcpy.AddMessage("\t\tIdentifying tree tops by focal flow...")
-        #r_focflow = arcpy.sa.FocalFlow(
-        #    r_sinks, 
-        #    "0,5"
-        #   )
-        
-        #version1
+        logger.info("\t\tIdentifying tree tops by focal flow...")
+
         arcpy.gp.FocalFlow_sa(
             r_sinks, 
             r_focflow,
             "0,5"
         )
-        #arcpy.Delete_management(r_sinks)
         return r_focflow
-    
-    # Identify tree tops (II) by converting focal flow values from 0 to 1
-    # delete/do not use for version2 
-    #def convert_focalFlow():
-        #arcpy.AddMessage("\t\tIdentifying tree tops by converting focal flow values from 0 to 1...")
-    
-        #arcpy.gp.RasterCalculator_sa(
-            #'Con("{}" == 0, 1)'.format(r_focflow), 
-        #    r_focflow_01
-        #)
-        #arcpy.Delete_management(r_focflow)
-        #return r_focflow_01
     
     # Vectorize tree tops to polygons
     def focalFlow_toVector():
-        arcpy.AddMessage("\t\tVectorizing tree tops to polygons...")
+        logger.info("\t\tVectorizing tree tops to polygons...")
     
         arcpy.RasterToPolygon_conversion(
             in_raster = r_focflow,
@@ -372,7 +396,7 @@ def identify_treeTops(r_sinks, r_focflow, v_treetop_poly,v_treetop_singlepoly, r
 
     # Convert tree top polygons to points
     def focalFlow_vectorToPoint():
-        arcpy.AddMessage("\t\tConverting tree top polygons to points...")
+        logger.info("\t\tConverting tree top polygons to points...")
         
         # Convert multipart polygons to single part polgyons 
         # This ensures that tree top polygons can be converted to points
@@ -408,7 +432,7 @@ def identify_treeTops(r_sinks, r_focflow, v_treetop_poly,v_treetop_singlepoly, r
 # ------------------------------------------------------ #
 
 def identify_treeCrowns(r_watersheds, v_treecrown_poly):
-    arcpy.AddMessage("\t\tIdentifying tree crowns by vectorizing watersheds...")
+    logger.info("\t\tIdentifying tree crowns by vectorizing watersheds...")
     
     arcpy.RasterToPolygon_conversion(
         in_raster = r_watersheds,

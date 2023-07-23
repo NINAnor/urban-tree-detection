@@ -1,5 +1,7 @@
 """util functions for working with arcpy."""
 import arcpy
+from arcpy.sa import *
+from arcpy.ia import *
 import os
 
 # --------------------------------------------------------------------------- #
@@ -288,3 +290,46 @@ def deleteDuplicates(table, field):
     
     # Print the unique tree IDs that remain in the table
     #print(f"Unique Tree IDs: {len(unique_tree_ids)}")
+    
+# --------------------------------------------------------------------------- #    
+# Raster functions
+# --------------------------------------------------------------------------- #
+
+def convert_toIntRaster(float_raster, int_raster):
+    """Converst a float to an integer raster by first multipyling 
+    the cell value by 100 and then converting it to integer.
+
+    Args:
+        float_raster (raster): input raster 
+        int_raster (raster): 
+    """    
+    # multiply raster by 1000
+    inRaster = Raster(float_raster)
+    outTimes = inRaster * 100 
+    # convert raster to integer
+    outInt = Int(outTimes)
+    outInt.save(int_raster)
+
+def rasterList_toMosaic(raster_list, ouput_gdb, output_name, coord_system, spatial_resolution):
+    """Mosaics a list of rasters to a new 32 bit signed raster dataset using the mean cell values.
+
+    Args:
+        raster_list (_type_): _description_
+        ouput_gdb (_type_): _description_
+        output_name (_type_): _description_
+        COORD_SYSTEM (_type_): _description_
+        SPATIAL_RESOLUTION (_type_): _description_
+    """    
+    output_name = output_name.replace(".","-")
+    
+    arcpy.management.MosaicToNewRaster(
+        input_rasters=raster_list,
+        output_location=ouput_gdb,
+        raster_dataset_name_with_extension=output_name,
+        coordinate_system_for_the_raster=coord_system,
+        pixel_type="32_BIT_SIGNED",
+        cellsize=spatial_resolution,
+        number_of_bands=1,
+        mosaic_method="MEAN",
+        mosaic_colormap_mode="FIRST"
+    )
