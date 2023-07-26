@@ -18,17 +18,19 @@ def run_model_chm():
      
 
     dir_path = os.path.dirname(os.path.realpath(__file__))
-    script_path = os.path.join(dir_path, "segmentation", "model_chm.py")    
+    script_path_chm = os.path.join(dir_path, "segmentation", "model_chm.py")    
     
     try:
-        command = ['python', script_path]
+        command = ['python', script_path_chm]
         subprocess.run(command, check=True, capture_output=True, text=True)
 
     except subprocess.CalledProcessError as e:
-        script_name = os.path.basename(script_path)
+        script_name = os.path.basename(script_path_chm)
         #logger.error(f"An error occured: {str(e)}")
         logger.error(f"An error occured in the script {script_name}.")
         logger.error(f"Subprocess stderr:\n{e.stderr}")    
+    
+    script_watershed = os.path.join(dir_path, "segmentation", "watershed.py")
 
     logger.info("End main script")
 
