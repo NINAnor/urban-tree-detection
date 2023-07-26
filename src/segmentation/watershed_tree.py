@@ -2,340 +2,124 @@
 # ---------------------------------------------------------------------------
 # perform_tree_detection_v1.py
 # Description: Translation of Hanssen et al. (2021) tree detection algorithm
-# from ArcMap model builder to ArcPy script - Version 1
+# from ArcMap model builder to ArcPy script - Version 3
 # Author: Zofie Cimburova, Willeke A'Campo
 # Dependencies: ArcGIS Pro 3.0, 3D analyst, image analyst, spatial analyst
 # ---------------------------------------------------------------------------
-
-# ------------------------------------------------------ #
-# TODO - buildt in good practices
-# top = treetop (vector pnt)
-# crown = treecrown (vector polygon)
-# stem = treestem (vector pnt)
-# create (_temp) temprorary files in functions  
-# organise modules by use 
-# ------------------------------------------------------ #
 
 import os
 import time
 import arcpy
 from arcpy import env
-
-# TODO use config 
-import dotenv
-from dotenv import dotenv_values
-import datetime
-
-# TODO use logger instead
-#from utils.control import Log
+import logging
 
 # local sub-package modules
 import tree
-import select_area
 from compute_attribute import LaserAttributes
 
 # local sub-package utils
 from src import arcpy_utils as au
-from src import (MUNICIPALITY, TOOL_PATH, DATA_PATH, INTERIM_PATH)
+from src import (MUNICIPALITY, DATA_PATH, INTERIM_PATH, PROCESSED_PATH,
+                 SPATIAL_REFERENCE, COORD_SYSTEM, POINT_DENSITY)
 from src import logger
 
-# set the municipality (kommune) to be analyzed
-kommune = MUNICIPALITY
-
-# TODO move to time_config file
-current_datetime = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-# ------------------------------------------------------ #
-# Municipality Dependent Parameters  
-# TODO move to config.py
-# ------------------------------------------------------ #
-
-if kommune == "oslo" or "baerum" :
-    spatial_reference = "ETRS 1989 UTM Zone 32N"
-    rgb_is_available = True       # Baerum = True, Kristiandsand and Bodø = False 
-    veg_is_available = True        # Baerum = True, Kristiandsand and Bodø = False 
-    point_density = 10              # pkt/m2
-    min_heigth = 2               # TO DO check municipalities specific min_height
-    radius = 1.5                # radius can vary locally, dependent on species
-
-if kommune == "bodo" :
-    spatial_reference = "ETRS 1989 UTM Zone 33N"
-    rgb_is_available = False        # Baerum = True, Kristiandsand and Bodø = False 
-    veg_is_available = False        # Baerum = True, Kristiandsand and Bodø = False 
-    point_density = 2 
-    min_heigth = 2               # TO DO check municipalities specific min_height
-    radius = 1.5                # radius can vary locally, dependent on species
-
-if kommune == "kristiansand" :
-    spatial_reference = "ETRS 1989 UTM Zone 32N"
-    rgb_is_available = False        # Baerum = True, Kristiandsand and Bodø = False 
-    veg_is_available = False        # Baerum = True, Kristiandsand and Bodø = False 
-    point_density = 5 
-    min_heigth = 2               # min_height can vary locally, dependent on species
-    radius = 1.5                # radius can vary locally, dependent on species and can be tuned with gtd 
-
-
-# define the spatial resolution of the DSM/DTM/CHM grid based on lidar point density 
-if point_density >= 4:
-    spatial_resolution = 0.25 
-elif point_density < 4 and point_density >= 2: 
-    spatial_resolution =  0.5
-else: 
-    spatial_resolution = 1
-
-# start timer
-start_time0 = time.time()
-
-# ------------------------------------------------------ #
-# Path Variables  
-# Protected Variables are stored in .env file 
-# ------------------------------------------------------ #
-
-# search for .env file in USER directory 
-# user_dir = C:\\USERS\\<<firstname.lastname>>
-user_dir = os.path.join(os.path.expanduser("~"))
-dotenv_path = os.path.join(user_dir, 'trekroner.env')
-
-dotenv.load_dotenv(dotenv_path)
-config = dotenv_values(dotenv_path)
-
-# set secure variables
-# source dataset path variables
-FKB_BUILDING_PATH = os.getenv('FKB_BUILDING_PATH')
-#FKB_WATER_PATH = os.getenv('FKB_WATER_PATH')
-FKB_WATER_PATH = r"R:\\GeoSpatialData\\Topography\\Norway_FKB\\Original\\FKB-Vann FGDB-format\\Basisdata_0000_Norge_5973_FKB-Vann_FGDB.gdb"
-
-FKB_WATER_PATH = os.path.join(FKB_WATER_PATH, "fkb_vann_omrade")
-
-
-# project data path variables 
-DATA_PATH = os.getenv('DATA_PATH')
-raw_data_path = os.path.join(DATA_PATH, kommune, "raw")
-interim_data_path = os.path.join(DATA_PATH, kommune, "interim")
-processed_data_path = os.path.join(DATA_PATH, kommune, "processed")
-
-# specific file paths
-lidar_path = os.path.join(interim_data_path, "lidar")
-
-# admin GDB
-admin_data_path = os.path.join(interim_data_path, kommune + "_admin.gdb")
-study_area_path = os.path.join(admin_data_path, "analyseomrade")
-
-# laser segmented trees GDB
-laser_trees_path = os.path.join(interim_data_path, kommune + "_laser_trees.gdb")
-au.createGDB_ifNotExists(laser_trees_path)
-v_crown_merge = os.path.join(laser_trees_path, "crown_merge")
-v_top_merge = os.path.join(laser_trees_path, "top_merge")
-
-
 #------------------------------------------------------ #
-# Workspace settings
-# ------------------------------------------------------ #
-#log_file = Log(processed_data_path,"tree_dectection_v1_log.txt")
-env.overwriteOutput = True
-env.outputCoordinateSystem = arcpy.SpatialReference(spatial_reference)
-env.workspace = interim_data_path
-
-arcpy.AddMessage("\n")
-arcpy.AddMessage(f"Script started at: {current_datetime}")
-arcpy.AddMessage("-"*100)
-arcpy.AddMessage("municipality:\t\t\t" + kommune)
-arcpy.AddMessage("spatial reference:\t\t"+ spatial_reference)
-arcpy.AddMessage("RGB image available:\t\t"+ str(rgb_is_available))
-arcpy.AddMessage("Vegetation Classes available:\t"+ str(veg_is_available))
-arcpy.AddMessage("Output FileGDB:\t\t\t"+ str(os.path.basename(laser_trees_path)))
-arcpy.AddMessage("-"*100)
-
-#------------------------------------------------------ #
-# Functions 
+# Functions
 # ------------------------------------------------------ #
 
 def end_time1(start_time1):
     end_time1 = time.time()
     execution_time1 = end_time1 - start_time1
-    arcpy.AddMessage("\tTIME:\t {:.2f} sec".format(execution_time1))
+    logger.info("\tTIME:\t {:.2f} sec".format(execution_time1))
 
-# ------------------------------------------------------ #
-# 1. Detect tree polygons (crowns) and tree points (tops) per tile
-# ------------------------------------------------------ #
-
-arcpy.AddMessage("Step 1: Detecting tree polygons and points per las tile")
-arcpy.AddMessage("-"*100)
-
-
-if not arcpy.Exists(v_top_merge) or not arcpy.Exists(v_crown_merge):
-
-    # Iterate over tile (here the 5000 maplist is used for the tilecode, each las dataset contains all .las files within the tilecode)
-    list_tree_top_names = []
-    list_tree_crown_names = []  
-
-    # List the subdirectories in the folder
-    tile_list = [f.name for f in os.scandir(lidar_path) if f.is_dir() and not f.name.endswith('.gdb')]
-    n_tiles = len([f for f in os.listdir(lidar_path) if os.path.isdir(os.path.join(lidar_path, f))])
-
-    arcpy.AddMessage("In {} kommune {} tiles (5000 maplist) are processed:\n".format(kommune,n_tiles))
-    arcpy.AddMessage(tile_list)
-    print(tile_list)
-
+# define the spatial resolution of the DSM/DTM/CHM grid based on lidar point density
+def get_spatial_resolution():
+    if POINT_DENSITY >= 4:
+        spatial_resolution = 0.25
+    elif POINT_DENSITY < 4 and POINT_DENSITY >= 2:
+        spatial_resolution =  0.5
+    else:
+        spatial_resolution = 1
+    return spatial_resolution
+        
+def detect_watershed(neighbourhood_list, r_chm):
     
-    # Detect trees per tile in tile_list
-    for tile_code in tile_list: 
+    logger.info("1. Start watershed segmentation method...")
+    logger.info("-"*100)
+    logger.info("Processing neighbourhoods...")
+    logger.info(neighbourhood_list)
+    
+    # Detect trees per neighbourhood 
+    for n_code in neighbourhood_list:
+        logger.info("\t---------------------".format(n_code))
+        logger.info("\tPROCESSING NEIGHBOURHOOD <<{}>>".format(n_code))
+        logger.info("\t---------------------".format(n_code))
 
-        arcpy.AddMessage("\n\tPROCESSING TILE <<{}>>".format(tile_code))
-        arcpy.AddMessage("\t---------------------".format(tile_code))
-
-        # layer paths 
-        l_las_folder = r"lidar\{}".format(tile_code) # IF NECESSARY, CHANGE PATH TO .las FILES
-        d_las = os.path.join(lidar_path, "tile_" + tile_code + ".lasd")
-
-        filegdb_path = os.path.join(lidar_path, "tree_segmentation_" + tile_code + ".gdb")     
+        # temporary filegdb containing detected trees per neighbourhood
+        filegdb_path = os.path.join(tree_detection_path, "tree_detection_b" + n_code + ".gdb")     
         au.createGDB_ifNotExists(filegdb_path)
 
-        prefix = os.path.join(filegdb_path, "tile_" + tile_code)
-
+        # workspace settings
+        env.overwriteOutput = True
+        env.outputCoordinateSystem = arcpy.SpatialReference(SPATIAL_REFERENCE)
+        # not necessary as full paths are used, change accordingly if you work with relative paths
+        #env.workspace = filegdb_path
+        
         # ------------------------------------------------------ #
         # Dynamic Path Variables  
-        # MOVE TEMPORARY FILES TO tree.py
         # ------------------------------------------------------ #  
-
-        # canopy height model
-        r_dtm = os.path.join(prefix + "_012_dtm") 
-        r_dsm = os.path.join(prefix + "_012_dsm") 
-        r_chm = os.path.join(prefix + "_012_chm") 
-        # vegetation mask 
-        r_rgb = os.path.join(prefix + "_013_rgb_temp") # temporary file
-        r_tgi = os.path.join(prefix + "_013_tgi_temp") # temporary file
-        v_tgi = os.path.join(prefix + "_013_tgi")
-        # smoothed vegetation mask 
-        r_chm_tgi = os.path.join(prefix + "_014_chm_tgi_temp") # temporary file (input_chm)
-        r_chm_h = os.path.join(prefix + "_014_chm_h") # canopy heigth (tree height)
-        r_chm_smooth = os.path.join(prefix + "_014_chm_smooth") # canopy smooth (tree segmenatation)
-
+        
+        # neighbourhood specific file paths
+        v_neighb = os.path.join(split_neighbourhoods_gdb, "b_" + n_code)
+        v_neighb_buffer = os.path.join(split_neighbourhoods_gdb, "b_" + n_code + "_buffer200")
+        
+        # chm clipped by neighbourhood
+        r_chm_neighb = os.path.join(filegdb_path, "chm_neighb_200m")
+        
         # watershed segmentation
-        r_chm_flip = os.path.join(prefix + "_015_chm_flip_temp") # temporary file 
-        r_flowdir = os.path.join(prefix + "_015_flowdir_temp") # temporary file 
-        r_sinks = os.path.join(prefix + "_015_sinks") 
-        r_watersheds = os.path.join(prefix + "_015_watersheds")
+        r_chm_flip = os.path.join(filegdb_path, "chm_flip") 
+        r_flowdir = os.path.join(filegdb_path, "flowdir") 
+        r_sinks = os.path.join(filegdb_path, "sinks") 
+        r_watersheds = os.path.join(filegdb_path, "watersheds")
 
         # identify tree tops 
-        r_focflow = os.path.join(prefix + "_016_focflow_temp") # temporary file
-        r_focflow_01 = os.path.join(prefix + "_016_focflow_01_temp") # temporary file
-        v_top_poly = os.path.join(prefix + "_016_top_poly_temp") # temporary file
-        v_top_singlepoly = os.path.join(prefix + "_016_top_singlepoly_temp") # temporary file
-        v_top_pnt = os.path.join(prefix + "_016_all_tops_temp") # temporary file containing all points 
-        v_top_1to1 = os.path.join(prefix + "_016_top_1to1") # contains ONLY points that intersect with tree crowns 
+        r_focflow = os.path.join(filegdb_path, "focflow_temp") 
+        v_top_poly = os.path.join(filegdb_path, "top_poly_temp") 
+        v_top_singlepoly = os.path.join(filegdb_path, "top_singlepoly_temp") 
+        v_top_ws_temp = os.path.join(filegdb_path, "top_ws_temp")
+        v_top_watershed = os.path.join(filegdb_path, "tops_watershed_" + n_code) # RESULTING tree tops from watershed 
 
         # identify tree crowns 
-        v_crown_poly = os.path.join(prefix + "_017_all_crowns_temp") # old name v_watersheds (temporary file containing all points )
-        v_crown_1to1 = os.path.join(prefix + "_017_crown_1to1") # contains ONLY crowns that intersect with a treetop
+        v_crown_ws_temp = os.path.join(filegdb_path, "crown_ws_temp")
+        v_crown_watershed = os.path.join(filegdb_path, "crowns_watershed_"+ n_code) # RESULTING tree crowns from watershed 
 
         # ------------------------------------------------------ #
-        # 1.1 Create LAS Dataset
+        # 1.1 Clip CHM to neighbourhood + 200m buffer to avoid edge effects
         # ------------------------------------------------------ #
-        arcpy.AddMessage("\t1.1 Create LAS Dataset")
-
-        if arcpy.Exists(d_las):
-            arcpy.AddMessage("\t\tLAS Dataset for tile <<{}>> exists in database. Continue ...".format(tile_code))  
-        else:
-            start_time1 = time.time()
-            tree.create_lasDataset(l_las_folder,d_las)
-            end_time1(start_time1)
-
-        # ------------------------------------------------------ #
-        # 1.2 CANOPY HEIGTH MODEL
-        #     Create DTM (old 1.5)
-        #     Create DSM (old 1.6)
-        #     Create CHM (old 1.7)
-        #     Create CHM for the study area (TODO add +200m buffer to avoid edge effect?)
-        # ------------------------------------------------------ #
-        arcpy.AddMessage("\t1.2 Create Canopy Height Model (CHM)")
-
-        if arcpy.Exists(r_chm):
-            arcpy.AddMessage("\t\tCHM for tile <<{}>> exists in database. Continue ...".format(tile_code))
-        else:
-            start_time1 = time.time()
-                        
-            # create DTM
-            tree.create_DTM(d_las, r_dtm, spatial_resolution, study_area_path)
-            
-            # create DSM 
-            if veg_is_available:
-                arcpy.AddMessage("\t\tLiDAR point clouds are classified for vegetation in {} kommune. \n\t\tThe classes unclassified (1), low- (3), medium- (4), and, high (5) vegetation are used to create the DSM.".format(kommune))
-                class_code=["1", "3", "4", "5"]
-                return_values=["1", "3", "4", "5"]
-                tree.create_DSM(d_las, r_dsm, spatial_resolution, class_code, return_values, study_area_path)
-            else:
-                arcpy.AddMessage("\t\tLiDAR point clouds are not classified for vegetation in {} kommune. \n\t\tSolely the class unclassified (1) is used to create the DSM.".format(kommune))
-                class_code=["1"]
-                return_values=["1"]
-                tree.create_DSM(d_las, r_dsm, spatial_resolution, class_code, return_values, study_area_path)
+        try:
+            logger.info("\t1.1 Clip CHM to {} + 200m buffer to avoid edge effects".format(n_code))
+            if arcpy.Exists(r_chm_neighb):
+                logger.info("\t\tThe clipped CHM for neighbourhood <<{}>> exists in database. Continue ...".format(n_code))
+            else: 
+                arcpy.Buffer_analysis(
+                    in_features=v_neighb,
+                    out_feature_class=v_neighb_buffer,
+                    buffer_distance_or_field=200
+                )
                 
-            # create CHM 
-            tree.create_CHM(r_dtm, r_dsm, r_chm)
-            end_time1(start_time1)
+                arcpy.Clip_management(
+                    in_raster=r_chm,
+                    out_raster=r_chm_neighb,
+                    in_template_dataset=v_neighb_buffer,
+                    clipping_geometry="ClippingGeometry"
+                )
             
-        # ------------------------------------------------------ #
-        # 1.3 VEGETATION MASK
-        #     Create RGB image (old 1.2)
-        #     Create TGI vegetation mask (old 1.3)
-        #     Vectorize vegetation mask (old 1.4)
-        # ------------------------------------------------------ #
-        arcpy.AddMessage("\t1.3 Create Vegetation Mask (TGI)")
-        # check if rgb-image is available 
-        if rgb_is_available:
-            # check if file exists 
-            if arcpy.Exists(v_tgi):
-                arcpy.AddMessage("\t\tVegetation mask for tile <<{}>> exists in database. Continue ...".format(tile_code))
-            else:
-                start_time1 = time.time()
-                # create RGB-image
-                tree.create_RGB(d_las, r_rgb, study_area_path)
-                # create vegation mask     
-                tree.create_vegMask(r_rgb, r_tgi)
-                # vegetation mask to Vector 
-                tree.tgi_toVector(r_tgi, v_tgi)
-                end_time1(start_time1)    
-        else:
-            arcpy.AddMessage("\t\tRGB image for {} kommune does not exits. Vegetation mask cannot be created. Continue... ".format(kommune))
-
+        except Exception as e:
+            # catch any exception and print error message. 
+            logger.info(f"\t\tERROR: {e}. \nContinue...")
 
         # ------------------------------------------------------ #
-        # 1.4 SMOOTHING AND FILTERING CANOPY HEIGHT MODEL
-        #     Refine CHM with vegetation mask (old 1.8)
-        #     Filter CHM by minimum height (old 1.9)
-        #     Refine CHM by focal maximum filter (old 1.10)
-        #       --> best filter size can vary locally, dependent on tree species
-        # ------------------------------------------------------ #
-        arcpy.AddMessage("\t1.4 Smoothing and Filtering the Canopy Height Model (CHM)")
-
-        start_time1 = time.time()
-
-        if arcpy.Exists(r_chm_smooth):
-                arcpy.AddMessage("\t\tRefined vegetation mask for tile <<{}>> exists in database. Continue ...".format(tile_code))
-        else: 
-            # check if vegetation mask exists
-            if arcpy.Exists(v_tgi):
-                # refine with veg mask 
-                tree.extract_vegMask(v_tgi, r_chm, r_chm_tgi)
-                # filter by min tree heigth (municipality-sepcific)
-                input_chm=r_chm_tgi  # vegetation masked chm 
-                tree.extract_minHeight(input_chm, r_chm_h, min_heigth)
-                # focal maximum filter 
-                tree.focal_maxFilter(r_chm_h, r_chm_smooth, radius)
-                arcpy.Delete_management(r_chm_tgi)
-                end_time1(start_time1)
-            else:
-                # refine with veg mask 
-                arcpy.AddMessage("\t\tVegetation maks is not generated for {} kommune. CHM cannot be refined using the vegetation mask. Continue... ".format(kommune))
-                # filter by min tree heigth (municipality-sepcific)
-                input_chm=r_chm     # non-vegetation masked chm
-                tree.extract_minHeight(input_chm, r_chm_h, min_heigth)
-                # focal maximum filter 
-                tree.focal_maxFilter(r_chm_h, r_chm_smooth, radius)
-                end_time1(start_time1)
-
-
-        # ------------------------------------------------------ #
-        # 1.5 THE WATERSHED SEGMENTATION METHOD
+        # 1.2 THE WATERSHED SEGMENTATION METHOD
         #     Flip CHM (old 1.11)
         #     Compute flow direction (old 1.12)
         #     Identify sinks (old 1.13)
@@ -343,196 +127,717 @@ if not arcpy.Exists(v_top_merge) or not arcpy.Exists(v_crown_merge):
         # ------------------------------------------------------ #
 
         try:
-            arcpy.AddMessage("\t1.5 The Watershed Segmentation Method")
+            logger.info("\t1.2 The Watershed Segmentation Method")
             start_time1 = time.time()
             if arcpy.Exists(r_watersheds):
-                arcpy.AddMessage("\t\t The watershed raster for tile <<{}>> exists in database. Continue ...".format(tile_code))
+                logger.info("\t\t The watershed raster for neighbourhood <<{}>> exists in database. Continue ...".format(n_code))
             else: 
                 # nested function for watershed segmentation method
-                tree.watershed_segmentation(r_chm_smooth,r_chm_flip,r_flowdir,r_sinks,r_watersheds)
+                tree.watershed_segmentation(r_chm_neighb,r_chm_flip,r_flowdir,r_sinks,r_watersheds)
                 end_time1(start_time1)
         except Exception as e:
             # catch any exception and print error message. 
-            arcpy.AddMessage(f"\t\tERROR: {e}. \nContinue...")
+            logger.info(f"\t\tERROR: {e}. \nContinue...")
 
 
         # ------------------------------------------------------ #
-        # 1.6 IDENTIFY TREE TOPS 
+        # 1.3 IDENTIFY TREE TOPS 
         #     Identify tree tops (I) by identifying focal flow (old 1.15)
         #     Identify tree tops (II) by converting focal flow values from 0 to 1 (old 1.16)
         #     Vectorize tree tops to polygons (old 1.17)
         #     Convert tree top polygons to points (old 1.18)
         # ------------------------------------------------------ #        
 
-        # TODO use version 2 instead! 
-        # r_focflow_01 can be deleted
         try:        
-            arcpy.AddMessage("\t1.6 Identify Tree Tops  ")
+            logger.info("\t1.3 Identify Tree Tops  ")
             start_time1 = time.time()
-            if arcpy.Exists(v_top_pnt):
-                arcpy.AddMessage("\t\tThe treetop vector for tile <<{}>> exists in database. Continue ...".format(tile_code))
+            if arcpy.Exists(v_top_ws_temp):
+                logger.info("\t\tThe treetop vector for neighbourhood <<{}>> exists in database. Continue ...".format(n_code))
             else: 
                 # nested function to identify treeTops
-                tree.identify_treeTops(r_sinks, r_focflow, v_top_poly,v_top_singlepoly, r_chm_h, r_dsm, v_top_pnt)
+                tree.identify_treeTops(r_sinks, r_focflow, v_top_poly,v_top_singlepoly, v_top_ws_temp)
                 end_time1(start_time1)
         except Exception as e:
             # catch any exception and print error message. 
-            arcpy.AddMessage(f"\t\tERROR: {e}. \nContinue...")
-        
-        #list_tree_top_names.append(v_top_pnt)
+            logger.info(f"\t\tERROR: {e}. \nContinue...")
+
 
         # ------------------------------------------------------ #
-        #  1.7 IDENTIFY TREE CROWNS
+        #  1.4 IDENTIFY TREE CROWNS
         #      Identify tree crowns by vectorizing watersheds (old 1.19)
         # ------------------------------------------------------ #  
 
-        arcpy.AddMessage("\t1.7 Identify Tree Crowns ")
+        logger.info("\t1.4 Identify Tree Crowns ")
         start_time1 = time.time()
-        if arcpy.Exists(v_crown_poly):
-                arcpy.AddMessage("\t\tThe tree crown vector for tile <<{}>> exists in database. Continue ...".format(tile_code))
+        if arcpy.Exists(v_crown_ws_temp):
+                logger.info("\t\tThe tree crown vector for neighbourhood <<{}>> exists in database. Continue ...".format(n_code))
         else: 
-            tree.identify_treeCrowns(r_watersheds,v_crown_poly)
+            tree.identify_treeCrowns(r_watersheds,v_crown_ws_temp)
             end_time1(start_time1)
-
-
-        
-        # adding lidar info to attr. 
-        #computeAttribute.attr_lidarTile(v_top_pnt, tile_code)
-        laser_tile = LaserAttributes(filegdb_path, v_crown_poly, v_top_pnt)
-        laser_tile.attr_lidarTile(tile_code)
-
-        # ------------------------------------------------------ #
-        # 1.8 TOPOLOGY CHECK - ONLY ONE POINT WITHIN A POLYGON 
-        #     Select only tree points within neighbourhood (old 1.20)
-        #     Select only tree polygons within neighbourhood (i.e., the ones that intersect with tree tops) (old 1.21)
-        #     STEP 1.8 NOT NECESSARY already selected by study area by using Extract by Mask in CHM and vegetation mask     
-        # ------------------------------------------------------ #
-        arcpy.AddMessage("\t1.8 Topology check - one pnt within a polygon")
-        arcpy.AddMessage("\t\tSelecting only treecrown polygons that intersect with treetop point ...")
-        tree.topology_crownTop(v_crown_poly,v_top_pnt,v_crown_1to1)
-        
-        arcpy.AddMessage("\t\tSelecting only treetop points that intersect with treecrown polygons ...")
-        tree.topology_crownTop(v_top_pnt,v_crown_1to1,v_top_1to1)
         
         # ------------------------------------------------------ #
-        #  1.9 LIST ALL TOP PNTS AND CROWN POLYGONS 
+        # 1.5 DELETE TREES THAT ARE NOT WHITHIN THE NEIGHBOURHOOD
         # ------------------------------------------------------ #
-        arcpy.AddMessage("\t1.9 List all top pnts and crown polygons")
-        arcpy.AddMessage("\t\tAppending all treecrowns to list_tree_crown_names ...")
-        list_tree_crown_names.append(v_crown_1to1)
-        arcpy.AddMessage("\t\tAppending all treetops to list_tree_top_names ...")
-        list_tree_top_names.append(v_top_1to1)
+        
+        # TOPS
+        logger.info("\t1.5 Delete trees that are not located whithin the neighbourhood.")
 
-        arcpy.AddMessage("\t---------------------")
-        #break 
-
-# ------------------------------------------------------ #
-# 2. Merge detected trees into one file
-# ------------------------------------------------------ #
-    arcpy.AddMessage("-"*100)
-    arcpy.AddMessage("Step 2: Merging detected trees into one file...")
-    arcpy.AddMessage("-"*100)
-    
-    start_time1 = time.time()
-    if arcpy.Exists(v_top_merge):
-        arcpy.AddMessage(f"\t\tThe thee top layers for the different tiles are already merged. \n\t\tThe merged file is located in {kommune}_Laser_ByTre.gdb. Continue ...")
-    else:
-        arcpy.AddMessage("\t\tMerge tree tops for all tiles into one polygon file.")
-        arcpy.Merge_management(
-            inputs = list_tree_top_names,
-            output = v_top_merge
+        # create a layer using the the tops within the buffered neighbourhood
+        l_top_watershed = arcpy.MakeFeatureLayer_management(v_top_ws_temp, "lyr_top_watershed")
+        arcpy.SelectLayerByLocation_management(
+            l_top_watershed,
+            "INTERSECT",
+            v_neighb,
+            "",
+            "NEW_SELECTION"
         )
+        
+        # save selection to ouput file
+        arcpy.CopyFeatures_management(
+            l_top_watershed,
+            v_top_watershed # output
+        )
+        
+        # CROWNS
+        # create a layer using the the crowns within the buffered neighbourhood
+        l_crown_watershed = arcpy.MakeFeatureLayer_management(v_crown_ws_temp, "lyr_crown_watershed")
+        # only select crowns that intersect with the tree tops that fall within the neighbourhood
+        arcpy.SelectLayerByLocation_management(
+            l_crown_watershed,
+            "INTERSECT",
+            v_top_watershed, 
+            "",
+            "NEW_SELECTION"
+        )
+        
+        # save selection to ouput file
+        arcpy.CopyFeatures_management(
+            l_crown_watershed,
+            v_crown_watershed # output
+        )
+        
+        # ------------------------------------------------------ #
+        # 1.6 ADD METHOD AS ATTRIBUTE TO TREES
+        # ------------------------------------------------------ #
+        logger.info("\t1.6 Add tree detection method as attribute to trees.")
+        nb_attribute = LaserAttributes(filegdb_path, v_crown_watershed, v_top_watershed)  
+        segmentation_method = '"watershed_segmentation"'      
+        nb_attribute.attr_segMethod(segmentation_method)
+
+        # ------------------------------------------------------ #
+        # 1.7 ADD NEIGHBOURHOOD CODE AS ATTRIBUTE TO TREES
+        # ------------------------------------------------------ #
+        
+        logger.info("\t1.7 Add neighbourhood code as attribute to trees.")
+        nb_attribute.delete_adminAttr()
+        nb_attribute.attr_neighbCode(n_code)
+        
+        # ------------------------------------------------------ #
+        # 1.8 ADD TREE HEIGHT AS ATTRIBUTE TO TREE TOPS
+        # ------------------------------------------------------ #
+        logger.info("\t1.8 Add tree height and tree altitude as attribute to tree tops.")
+        str_multiplier = "100x"
+        nb_attribute.attr_topHeight(v_top_watershed, r_chm_neighb, r_dtm, str_multiplier)
+        
+        # ------------------------------------------------------ #
+        # 1.9 DELETE TEMPORARY LARYERS
+        # ------------------------------------------------------ #
+        logger.info("\t1.9 Delete temporary layers.")
+        temp_layers = [r_chm_flip, r_flowdir, r_sinks, r_watersheds, r_focflow, v_top_poly, v_top_singlepoly, v_top_ws_temp, v_crown_ws_temp]
+        for layer in temp_layers:
+            arcpy.Delete_management(layer)
+
+    logger.info("Finished modelling treecrowns using the Watershed Segmentation Method ...")
+    logger.info("The watershed-trees are stored in the interim file geodatabase tree_detection_<<bydelcode>>:")
+    logger.info("\t\tTops:\t tops_watershed_<<bydelcode>>")
+    logger.info("\t\tCrowns:\t crowns_watershed_<<bydelcode>>")
+    logger.info("-"*100)
+
+    # ------------------------------------------------------ #
+
+def detect_other_trees(neighbourhood_list):
+    
+    logger.info("2. Start detecting trees that are NOT detected with the watershed segmentation method...")
+    logger.info("-"*100)
+    logger.info("Processing neighbourhoods...")
+    logger.info(neighbourhood_list)
+    
+    # Detect trees per neighbourhood 
+    for n_code in neighbourhood_list:
+        logger.info("\t---------------------".format(n_code))
+        logger.info("\tPROCESSING NEIGHBOURHOOD <<{}>>".format(n_code))
+        logger.info("\t---------------------".format(n_code))
+
+        # temporary filegdb containing detected trees per neighbourhood
+        filegdb_path = os.path.join(tree_detection_path, "tree_detection_b" + n_code + ".gdb")     
+
+        # workspace settings
+        env.overwriteOutput = True
+        env.outputCoordinateSystem = arcpy.SpatialReference(SPATIAL_REFERENCE)
+        # not necessary as full paths are used, change accordingly if you work with relative paths
+        #env.workspace = filegdb_path
+        
+        # ------------------------------------------------------ #
+        # Dynamic Path Variables  
+        # ------------------------------------------------------ #  
+        
+        # neighbourhood specific file paths
+        v_neighb = os.path.join(split_neighbourhoods_gdb, "b_" + n_code)
+        
+        # chm clipped by neighbourhood
+        r_chm_neighb = os.path.join(filegdb_path, "chm_neighb_200m")
+        
+        # watershed trees
+        v_crown_watershed = os.path.join(filegdb_path, "crowns_watershed_"+ n_code) # RESULTING tree crowns from watershed 
+
+        # other trees
+        v_chm_polygons = os.path.join(filegdb_path, "chm_polygons")
+        v_other_crowns_temp = os.path.join(filegdb_path, "other_crowns_temp")
+        v_other_crowns_dissolved = os.path.join(filegdb_path, "other_crowns_dissolved_temp") 
+        v_other_crowns_all = os.path.join(filegdb_path, "other_crowns_dissolved")
+        v_other_crowns = os.path.join(filegdb_path, "crowns_other_" + n_code) # Resulting other crowns
+        
+        # other tops
+        r_zonal_max = os.path.join(filegdb_path, "chm_zonal_max")
+        v_other_tops = os.path.join(filegdb_path, "tops_other_" + n_code) # Resulting other tops
+
+        # ------------------------------------------------------ #
+        # 2.1 Convert CHM to polygons
+        # TODO move to tree module 
+        # ------------------------------------------------------ #
+        
+        logging.info("\t2.1 Convert CHM to polygons")
+        arcpy.conversion.RasterToPolygon(
+            in_raster=r_chm_neighb,
+            out_polygon_features=v_chm_polygons,
+            simplify="SIMPLIFY",
+            raster_field="Value",
+            create_multipart_features="SINGLE_OUTER_PART",
+            max_vertices_per_feature=None
+        )
+        
+        # ------------------------------------------------------ #
+        # 2.2 Select polygons that do not intersect with watershed trees
+        # ------------------------------------------------------ #
+        
+        logging.info("\t2.2 Select polygons that do not intersect with watershed trees")
+        # create a layer for the converted CHM polygons
+        l_chm_polygons = arcpy.MakeFeatureLayer_management(v_chm_polygons, "lyr_chm_polygons")
+        
+        # inverse selection of watershed trees
+        arcpy.SelectLayerByLocation_management(
+            l_chm_polygons,
+            "INTERSECT",
+            v_crown_watershed,
+            None, 
+            "NEW_SELECTION",
+            "INVERT"
+        )
+        
+        # save selection to ouput file
+        arcpy.CopyFeatures_management(
+            l_chm_polygons,
+            v_other_crowns_temp # output
+        )
+
+        # ------------------------------------------------------ #
+        # 2.3 Disolve polygons to crowns
+        # ------------------------------------------------------ #
+        logging.info("\t2.3 Disolve polygons to crowns")
+        arcpy.management.Dissolve(
+            in_features=v_other_crowns_temp,
+            out_feature_class=v_other_crowns_dissolved,
+            dissolve_field=None,
+            statistics_fields=None,
+            multi_part="SINGLE_PART",
+            unsplit_lines="DISSOLVE_LINES",
+            concatenation_separator=""
+        )
+        
+        # ------------------------------------------------------ #
+        # 2.4 Delete crowns that are not whithin the neighbourhood
+        # ------------------------------------------------------ #
+        
+        logging.info("\t2.4 Delete other trees that are not located whithin the neighbourhood.")
+
+        # create a layer using the the crowns within the buffered neighbourhood
+        l_other_crowns = arcpy.MakeFeatureLayer_management(v_other_crowns_dissolved, "lyr_crown_watershed")
+        # only select crowns that intersect with the tree tops that fall within the neighbourhood
+        arcpy.SelectLayerByLocation_management(
+            l_other_crowns,
+            "INTERSECT",
+            v_neighb, 
+            "",
+            "NEW_SELECTION"
+        )
+        
+        # save selection to ouput file
+        arcpy.CopyFeatures_management(
+            l_other_crowns,
+            v_other_crowns_all # output
+        )
+        
+        # ------------------------------------------------------ #
+        # 2.5 Delete crowns smaller than 4 m2
+        # ------------------------------------------------------ #
+    
+        lyr_crowns_other = arcpy.MakeFeatureLayer_management(v_other_crowns_all, "lyr_crowns_other")
+        lyr_roads = arcpy.MakeFeatureLayer_management(fkb_veg_omrade, "lyr_roads")
+        lyr_buildings = arcpy.MakeFeatureLayer_management(fkb_bygning_omrade, "lyr_buildings")
+
+        # ------------------------------------------------------ #
+        # 4.2 Detect False Positives for the other_dissolve_method
+        # ------------------------------------------------------ #
+
+        logger.info("\t2.5 Detect False Positives for the other tree detection method.")
+        logger.info("\t Delete trees that intersect with buildings (+2m buffer), roads and are smaller than 12 m2.")
+        # select crowns that intersect or ar within 2m of buildings 
+        arcpy.SelectLayerByLocation_management(
+            lyr_crowns_other, 
+            "INTERSECT",
+            lyr_buildings,
+            "2",
+            "SUBSET_SELECTION",
+            invert_spatial_relationship = False    
+        )
+
+        # add crowns that intersect with roads to selection 
+        arcpy.SelectLayerByLocation_management(
+            lyr_crowns_other, 
+            "INTERSECT",
+            lyr_roads,
+            "",
+            "ADD_TO_SELECTION",
+            invert_spatial_relationship = False    
+        )
+        
+        # add crowns that are smaller than 12 m2 to selection
+        arcpy.management.SelectLayerByAttribute(
+            in_layer_or_view=lyr_crowns_other,
+            selection_type="ADD_TO_SELECTION",
+            where_clause= "Shape_Area < 12"
+        )
+
+
+        # switch selection e.g. keep on
+        arcpy.SelectLayerByAttribute_management(
+            in_layer_or_view=lyr_crowns_other,
+            selection_type="SWITCH_SELECTION"
+        )
+        
+        arcpy.CopyFeatures_management(
+            in_features=lyr_crowns_other,
+            out_feature_class=v_other_crowns
+        )
+        
+        # ------------------------------------------------------ #
+        # 2.6 Identify "other" tree tops 
+        # ------------------------------------------------------ #
+
+        # polygon to point
+        arcpy.management.FeatureToPoint(
+            in_features=v_other_crowns,
+            out_feature_class=v_other_tops,
+            point_location="INSIDE"
+        )
+        
+        # ------------------------------------------------------ #
+        # 2.8 ADD METHOD AS ATTRIBUTE TO TREES
+        # ------------------------------------------------------ #
+        
+        logger.info("\t2.7 Add tree detection method as attribute to trees.")
+        nb_attribute = LaserAttributes(filegdb_path, v_other_crowns, v_other_tops)
+        segmentation_method = '"other_dissolve"'      
+        nb_attribute.attr_segMethod(segmentation_method)
+
+        # ------------------------------------------------------ #
+        # 2.7 ADD NEIGHBOURHOOD CODE AS ATTRIBUTE TO TREES
+        # ------------------------------------------------------ #
+        
+        logger.info("\t2.9 Add neighbourhood code as attribute to trees.")
+        nb_attribute.delete_adminAttr()
+        nb_attribute.attr_neighbCode(n_code)
+        
+        # ------------------------------------------------------ #
+        # 2.9 ADD TREE HEIGHT AS ATTRIBUTE TO TREES
+        # ------------------------------------------------------ #
+        logger.info("\t2.9 Add tree height and tree altitude as attribute to tree tops.")
+        # use zonal max to determin highest value in crown area 
+        zonalMax = arcpy.ia.ZonalStatistics(
+            in_zone_data=v_other_crowns,
+            zone_field="OBJECTID",
+            in_value_raster=r_chm_neighb,
+            statistics_type="MAXIMUM",
+            ignore_nodata="DATA",
+            process_as_multidimensional="CURRENT_SLICE",
+            percentile_value=90,
+            percentile_interpolation_type="AUTO_DETECT",
+            circular_calculation="ARITHMETIC",
+            circular_wrap_value=360
+        )
+        zonalMax.save(r_zonal_max)
+
+        str_multiplier = "100x"
+    
+        nb_attribute.attr_topHeight(v_other_tops, r_zonal_max, r_dtm, str_multiplier)
+        
+        
+        
+        # ------------------------------------------------------ #
+        # 2.9 DELETE TEMPORARY LARYERS
+        # ------------------------------------------------------ #
+        logger.info("\t2.9 Delete temporary layers.")
+        temp_layers = [v_chm_polygons, v_other_crowns_temp, v_other_crowns_dissolved, v_other_crowns_all, r_zonal_max]
+        for layer in temp_layers:
+            arcpy.Delete_management(layer)
+                  
+        
+    logger.info("Finished modelling the treecrowns that could not be identified with the watershed segmentation method  ...")
+    logger.info("The other-trees are stored in the interim file geodatabase tree_detection_<<bydelcode>>:\n\t")
+    logger.info("\t\tTops:\t other_tops_<<bydelcode>>")
+    logger.info("\t\tCrowns:\t other_crowns_<<bydelcode>>")
+    logger.info("-"*100)
+    
+    # ------------------------------------------------------ #                                    
+
+def merge_trees(neighbourhood_list):
+   
+    logger.info("3. Merge Trees with Other Trees...")
+    logger.info("-"*100)
+    logger.info("Processing neighbourhoods...")
+    logger.info(neighbourhood_list)
+    
+    # Detect trees per neighbourhood 
+    for n_code in neighbourhood_list:
+        logger.info("\t---------------------".format(n_code))
+        logger.info("\tPROCESSING NEIGHBOURHOOD <<{}>>".format(n_code))
+        logger.info("\t---------------------".format(n_code))
+
+        # temporary filegdb containing detected trees per neighbourhood
+        filegdb_path = os.path.join(tree_detection_path, "tree_detection_b" + n_code + ".gdb")     
+
+        # workspace settings
+        env.overwriteOutput = True
+        env.outputCoordinateSystem = arcpy.SpatialReference(SPATIAL_REFERENCE)
+        # not necessary as full paths are used, change accordingly if you work with relative paths
+        #env.workspace = filegdb_path
+        
+        # ------------------------------------------------------ #
+        # Dynamic Path Variables  
+        # ------------------------------------------------------ #  
+         
+        v_top_watershed = os.path.join(filegdb_path, "tops_watershed_" + n_code) # RESULTING tree tops from watershed 
+        v_crown_watershed = os.path.join(filegdb_path, "crowns_watershed_"+ n_code) # RESULTING tree crowns from watershed 
+        v_other_crowns = os.path.join(filegdb_path, "crowns_other_" + n_code) # Resulting other crowns
+        v_other_tops = os.path.join(filegdb_path, "tops_other_" + n_code) # Resulting other tops
+        
+        v_top_temp = os.path.join(filegdb_path, "tops_tmp_" + n_code) 
+        v_crown_temp = os.path.join(filegdb_path, "crowns_tmp_" + n_code)
+        
+        v_top = os.path.join(filegdb_path, "tops_" + n_code)
+        v_crown = os.path.join(filegdb_path, "crowns_" + n_code)
+
+        # ------------------------------------------------------ #
+        # 3. Merge detected trees into one file
+        # ------------------------------------------------------ #
+        logger.info("-"*100)
+        logger.info("3.1 Merging detected trees into one file...")
+        logger.info("-"*100)
+
+        start_time1 = time.time()
+        if arcpy.Exists(v_top):
+            logger.info("\tThe tree tops are already merged. Continue ...")
+        else:
+            logger.info("\tMerge tree tops for all tiles into one polygon file.")
+            arcpy.Merge_management(
+                inputs = [v_top_watershed, v_other_tops],
+                output = v_top_temp
+            )
         end_time1(start_time1) 
 
-    start_time1 = time.time()
-    if arcpy.Exists(v_crown_merge):
-        arcpy.AddMessage(f"\t\tThe thee crown layers for the different tiles are already merged. \n\t\tThe merged file is located in {kommune}_Laser_ByTre.gdb. Continue ...")
-    else:
-        arcpy.AddMessage("\t\tMerge tree crowns for all tiles into one polygon file.")
-        arcpy.Merge_management(
-            inputs = list_tree_crown_names,
-            output = v_crown_merge
+        start_time1 = time.time()
+        if arcpy.Exists(v_crown):
+            logger.info("\tThe tree crowns are already merged. Continue ...")
+        else:
+            logger.info("\t\tMerge tree crowns for all tiles into one polygon file.")
+            arcpy.Merge_management(
+                inputs = [v_crown_watershed, v_other_crowns],
+                output = v_crown_temp
+            )
+        end_time1(start_time1)
+
+    logger.info("Finished merging the detected trees into one file ...")
+    
+    
+
+def calculate_attributes():
+    
+    logger.info("5. Calculate Attributes...")
+    logger.info("-"*100)
+    logger.info("Processing neighbourhoods...")
+    logger.info(neighbourhood_list)
+    
+    # Detect trees per neighbourhood 
+    for n_code in neighbourhood_list:
+        logger.info("\t---------------------".format(n_code))
+        logger.info("\tPROCESSING NEIGHBOURHOOD <<{}>>".format(n_code))
+        logger.info("\t---------------------".format(n_code))
+
+        # temporary filegdb containing detected trees per neighbourhood
+        filegdb_path = os.path.join(tree_detection_path, "tree_detection_b" + n_code + ".gdb")     
+
+        # workspace settings
+        env.overwriteOutput = True
+        env.outputCoordinateSystem = arcpy.SpatialReference(SPATIAL_REFERENCE)
+        # not necessary as full paths are used, change accordingly if you work with relative paths
+        #env.workspace = filegdb_path
+        
+        # ------------------------------------------------------ #
+        # Dynamic Path Variables
+        # ------------------------------------------------------ #
+        v_top_temp = os.path.join(filegdb_path, "tops_tmp_" + n_code) 
+        v_crown_temp = os.path.join(filegdb_path, "crowns_tmp_" + n_code)
+               
+        # ------------------------------------------------------ #
+        # 4. Calculate attributes
+        # ------------------------------------------------------ #
+    
+        # init class to calculate attributes derived from the laser modelled CHM 
+        Attribute = LaserAttributes(filegdb_path, v_crown_temp, v_top_temp)
+
+        # calculate attributes for tree crowns
+        # nb_code in loop
+        Attribute.delete_adminAttr()
+        Attribute.attr_crownID(n_code) 
+        Attribute.attr_crownDiam()
+        Attribute.attr_crownArea() # crown_area and crown_perimeter
+        
+        # calculate attributes for enclosing circle, convex hull and envelope
+        # if you want to keep the temporary MBG layers, set keep_temp=True
+        Attribute.attr_enclosingCircle(keep_temp=True)
+        Attribute.attr_convexHull(keep_temp=True)
+        Attribute.attr_envelope(keep_temp=True)
+        
+        # calculate attributes for tree tops 
+        # nb_code and tree height/altitude in loop
+        Attribute.delete_adminAttr()
+        Attribute.join_crownID_toTop()
+
+        # join top attributes to crown polygons
+        Attribute.join_topAttr_toCrown() # tree_height_laser and tree_altit   
+        Attribute.attr_crownVolume()
+        
+    logger.info("Finished calculating attributes for the detected trees ...")  
+        
+
+
+def detect_falsePositives(neighbourhood_list):
+    
+    logger.info("4. Detect False Positives...")
+    logger.info("-"*100)
+    logger.info("Processing neighbourhoods...")
+    logger.info(neighbourhood_list)
+    
+    # layers for selection 
+    lyr_roads = arcpy.MakeFeatureLayer_management(fkb_veg_omrade, "lyr_roads")
+    
+    # Detect trees per neighbourhood 
+    for n_code in neighbourhood_list:
+        logger.info("\t---------------------".format(n_code))
+        logger.info("\tPROCESSING NEIGHBOURHOOD <<{}>>".format(n_code))
+        logger.info("\t---------------------".format(n_code))
+
+        # temporary filegdb containing detected trees per neighbourhood
+        filegdb_path = os.path.join(tree_detection_path, "tree_detection_b" + n_code + ".gdb")     
+        au.createGDB_ifNotExists(filegdb_path)
+
+        # workspace settings
+        env.overwriteOutput = True
+        env.outputCoordinateSystem = arcpy.SpatialReference(SPATIAL_REFERENCE)
+        env.workspace = filegdb_path
+        
+        # ------------------------------------------------------ #
+        # Dynamic Path Variables
+        # ------------------------------------------------------ #
+        # input
+        v_top_temp = os.path.join(filegdb_path, "tops_tmp_" + n_code) 
+        v_crown_temp = os.path.join(filegdb_path, "crowns_tmp_" + n_code)
+        lyr_crown_temp = arcpy.MakeFeatureLayer_management(v_crown_temp, "lyr_crown_temp")
+
+        # output
+        v_top = os.path.join(ds_tops, "b_" + n_code + "topper")
+        v_crown = os.path.join(ds_crowns, "b_" + n_code + "_kroner")
+        v_crown_false_positives = os.path.join(ds_false_positives, "b_" + n_code + "_fp_kroner")
+
+        # ------------------------------------------------------ #
+        # 4.1 Detect False Positives based on polygon geometry 
+        # - lampposts: perfect circles that intersect with roads
+        # - outliers in crown_area
+        # - outliers in ratio crown/area convex hull
+        # - outliers in ratio crown/area enclosing circle 
+        # ------------------------------------------------------ #
+        
+        logger.info("\t4.1 Detect False Positives based on polygon geometry.")
+        
+        # lamp posts 
+        arcpy.SelectLayerByLocation_management(
+            lyr_crown_temp, 
+            "INTERSECT",
+            lyr_roads,
+            "",
+            "NEW_SELECTION",
+            invert_spatial_relationship = False    
         )
-        end_time1(start_time1)  
-    
-    ## contine to else statement 
+        
+        arcpy.management.SelectLayerByAttribute(
+            in_layer_or_view=lyr_crown_temp,
+            selection_type="SUBSET_SELECTION",
+            where_clause= "crown_area > 6.5 And crown_area < 9 And ratio_CA_CHA > 0.85 And ratio_CA_ECA > 0.7"
+        ) 
+        
+        # geometery outliers       
+        arcpy.management.SelectLayerByAttribute(
+            in_layer_or_view=lyr_crown_temp,
+            selection_type="ADD_TO_SELECTION",
+            where_clause="outlier_CA <> 0 Or outlier_ratio_CA_CHA <> 0 Or outlier_ratio_CA_ECA <> 0",
+            invert_where_clause=None
+        )
+        
+        # export false positives
+        arcpy.CopyFeatures_management(
+            in_features=lyr_crown_temp,
+            out_feature_class=v_crown_false_positives
+        )
+        
+        # switch selection 
+        arcpy.SelectLayerByAttribute_management(
+            in_layer_or_view=lyr_crown_temp,
+            selection_type="SWITCH_SELECTION"
+        )
+        
+        # copy features that passed the test to separate feature class
+        arcpy.CopyFeatures_management(
+            in_features=lyr_crown_temp,
+            out_feature_class=v_crown
+        )
+        # topology check delete all tops (false positives) that are not within the crown layer
+        tree.topology_crownTop(v_top_temp, v_crown, v_top)
 
-else:
-    arcpy.AddMessage("\tTree polygons and points are already detected. Continue to Step 3...")
+        # ------------------------------------------------------ #
+     
+    logger.info("Finished detecting false positives ...")
+    logger.info("The false postives and the cleaned tree dataset is stored in the filegdb {}:\n\t".format(gdb_laser_urban_trees))
+    return
+
+if __name__ == '__main__':
+    
+    logger.setup_logger(logfile=False)
+    logger = logging.getLogger(__name__)
+    
+    # start timer
+    start_time0 = time.time()
+    kommune = MUNICIPALITY
+    # TODO move get_spatial_resolution() to config file
+    spatial_resolution = get_spatial_resolution()
+
+    # ------------------------------------------------------ #
+    # INPUT PATHS
+    # ------------------------------------------------------ #
+
+    # specific file paths
+    tree_detection_path = os.path.join(INTERIM_PATH, "tree_detection")
+
+    # admin data
+    admin_data_path = os.path.join(DATA_PATH, kommune, "general", kommune + "_admindata.gdb")
+    study_area_path = os.path.join(admin_data_path, "analyseomrade")
+    
+    # neighbourhood list
+    neighbourhood_path = os.path.join(admin_data_path, "bydeler")
+    n_field_name = "bydelnummer"
+    
+    neighbourhood_list = ["420409", "420411"]
+    #neighbourhood_list = au.get_neighbourhood_list(neighbourhood_path, n_field_name)
+
+    # split neighbourhoods    
+    split_neighbourhoods_gdb = os.path.join(INTERIM_PATH, "bydeler_split.gdb")
+    if not arcpy.Exists(split_neighbourhoods_gdb): 
+        logger.info("Splitting neighbourhoods...")
+        au.split_neighbourhoods(neighbourhood_path, n_field_name, split_neighbourhoods_gdb)
+        
+    # base data
+    base_data_path = os.path.join(DATA_PATH, kommune, "general", kommune + "_basisdata.gdb")
+    fkb_bygning_omrade = os.path.join(base_data_path, "fkb_bygning_omrade")
+    fkb_vann_omrade = os.path.join(base_data_path, "fkb_vann_omrade")
+    fkb_veg_omrade = os.path.join(base_data_path, "fkb_veg_omrade")
+
+    # terrain data
+    # if database does not exists exit the code with the message: "The elevation data for the kommune is not available. Please run the script 'model_chm.py' first."
+    gdb_elevation_data = os.path.join(DATA_PATH, kommune, "general", kommune + "_hoydedata.gdb")
+    
+    if not arcpy.Exists(gdb_elevation_data):
+        logger.error(f"The elevation and canopy height model data for {kommune} kommune is not available.\
+                     \nPlease run the script 'model_chm.py' first.")
+        exit()
+
+    # canopy height raster (note values are x100)
+    # TODO move chm_025m_int_100x to config file
+    r_chm = os.path.join(gdb_elevation_data, "chm_025m_int_100x")
+    r_dtm = os.path.join(gdb_elevation_data, "dtm_025m_int_100x") # for adding tree altitude to tree points
     
     # ------------------------------------------------------ #
-    # 3. Select trees outside buildings and sea
-    # TODO move to separate file (identify false detections)
-    # add more 4.5 IDENTIFY FALSE DETECTIONS (v2!)
+    # OUTPUT PATHS
     # ------------------------------------------------------ #
-    arcpy.AddMessage("-"*100)
-    arcpy.AddMessage("Step 3: Selecting trees outside buildings and sea...")
-    arcpy.AddMessage("-"*100)
     
-    # select tree points 
-    start_time1 = time.time()
-    v_top_mask = os.path.join(laser_trees_path, "top_mask") 
-    v_crown_mask = os.path.join(laser_trees_path, "crown_mask") 
-    v_top_mask_1to1 = os.path.join(laser_trees_path, "top_1to1")
-    v_crown_mask_1to1 = os.path.join(laser_trees_path, "crown_1to1")
+    gdb_laser_urban_trees = os.path.join(PROCESSED_PATH, kommune + "_laser_bytraer.gdb")
+    au.createGDB_ifNotExists(gdb_laser_urban_trees)  
+
+    ds_false_positives = os.path.join(gdb_laser_urban_trees, "falsk_positive_trekroner")
+    au.createDataset_ifNotExists(gdb_laser_urban_trees, "falsk_positive_trekroner", COORD_SYSTEM)
     
-    if arcpy.Exists(v_top_mask_1to1) and arcpy.Exists(v_crown_mask_1to1):
-        arcpy.AddMessage(f"\tThe treetops and treecrowns are already masked for false trees within building and water areas. Continue ...")
+    ds_crowns = os.path.join(gdb_laser_urban_trees, "trekroner")  
+    au.createDataset_ifNotExists(gdb_laser_urban_trees, "trekroner", COORD_SYSTEM)
+    
+    ds_tops = os.path.join(gdb_laser_urban_trees, "tretopper")
+    au.createDataset_ifNotExists(gdb_laser_urban_trees, "tretopper", COORD_SYSTEM)
+    
+    # ------------------------------------------------------ #
+    
+    logger.info("-"*100)
+    logger.info("municipality:\t\t\t" + kommune)
+    logger.info("spatial reference:\t\t"+ SPATIAL_REFERENCE)
+    logger.info("Spatial Resolution:\t\t"+ str(spatial_resolution))
+    logger.info("Canopy Height Model:\t\t"+ os.path.basename(r_chm))
+    logger.info("Output gdb:\t\t\t" + gdb_laser_urban_trees)
+    logger.info("-"*100)
+    
+    user_input = input("Do you want to keep the interim chm filegdb's? (y/n):")
+    
+    if user_input == "y" or "yes" or "true" or "1" or "True":
+        keep_temp = True
+        logger.info("\tInterim filegdb's will be kept ...")
     else:
+        keep_temp = False
+        logger.info("\tInterim filegdb's will be deleted ...")
         
-        # mask tree tops 
-        arcpy.AddMessage(f"\tThe tree tops are masked for false trees within building and water areas...")
-        selected_trees = v_top_mask # TODO better name masked_trees?
-        
-        # TODO ADD IF EXISTS to vsea and vbuilding 
-        v_sea = select_area.select_sea(FKB_WATER_PATH, study_area_path, admin_data_path)
-        v_building = select_area.select_building(FKB_BUILDING_PATH, study_area_path, admin_data_path)
-        v_top_mask = select_area.mask_tree(v_top_merge, v_building,v_sea,selected_trees)
-        
-        
-        # mask tree crowns
-        arcpy.AddMessage(f"\tThe tree crowns are masked for false trees within building and water areas...")
-        selected_trees = v_crown_mask
-        v_crown_mask = select_area.mask_tree(v_crown_merge, v_building,v_sea,selected_trees)
-
-        arcpy.AddMessage("\t\tSelecting only treetop points that intersect with treecrown polygons ...")
-        tree.topology_crownTop(v_top_mask, v_crown_mask,v_top_mask_1to1) 
-        arcpy.AddMessage("\tEnsuring that each treecrown polygon contains one treetop point ...")
-        tree.topology_crownTop(v_crown_mask, v_top_mask_1to1,v_crown_mask_1to1)
-
-    # TODO delete fkb sea/building to save storage space
-    #arcpy.Delete_management(v_sea)
-    #arcpy.Delete_management(v_building)
-                                               
-                                               
     # ------------------------------------------------------ #
-    # 4. Compute additional laser attributes
-    # TODO move this step to main.py to separate file and compute all 
+    # RUN FUNCTIONS
     # ------------------------------------------------------ #
-    arcpy.AddMessage("-"*100)
-    arcpy.AddMessage("Step 4: Computing additional laser attributes...") 
-    arcpy.AddMessage("-"*100)
     
-    # TODO check all attributes
-    
-    laser_trees = LaserAttributes(laser_trees_path, v_crown_mask_1to1, v_top_mask_1to1)
-    laser_trees.attr_crownID()
-    laser_trees.attr_crownDiam()
-    laser_trees.attr_crownArea()
-    laser_trees.join_crownID_toTop()
-    laser_trees.join_topAttr_toCrown()
-    laser_trees.attr_crownVolume()
-    
-    # TODO Delete if new class LaserAttributes works 
-    #computeAttribute.attr_crownID(v_crown_mask_1to1)
-    #computeAttribute.attr_crownArea(v_crown_mask_1to1, laser_trees_path)
-    #computeAttribute.polygonAttr_toPoint(v_top_mask_1to1, v_crown_mask_1to1, laser_trees_path)
-    #computeAttribute.pointAttr_toPolygon(v_crown_mask_1to1,v_top_mask_1to1)
-    #computeAttribute.attr_crownVolume(v_crown_mask_1to1)
-    #computeAttribute.attr_crownVolume(v_top_mask_1to1)
+    # TODO move functions to separate modules and run from root
+    # TODO add if and try statements
+    #detect_watershed(neighbourhood_list, r_chm)
+    #detect_other_trees(neighbourhood_list)
+    merge_trees(neighbourhood_list)
+    calculate_attributes()
+    detect_falsePositives(neighbourhood_list)
 
-end_time0 = time.time()
-execution_time0 = (end_time0 - start_time0)/60
-arcpy.AddMessage("TOTAL TIME:\t {:.2f} min".format(execution_time0))
-
-
+    # delete all interim filegdb's 
+    if keep_temp == False:
+        logger.info("\n\tDeleting all interim filegdb's ...")
+        for file in os.listdir(tree_detection_path):
+            if file.startswith("tree_detection"):
+                arcpy.Delete_management(os.path.join(tree_detection_path, file))
+            
+    end_time0 = time.time()
+    execution_time1 = end_time0 - start_time0
+    logger.info("\n\tEXCEUTION TIME:\t {:.2f} sec".format(execution_time1))
