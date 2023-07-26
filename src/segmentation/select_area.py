@@ -1,6 +1,8 @@
 import arcpy
 import os
 
+# TODO this module is not used anymore. Delete it.
+
 def select_sea(input_path, study_area_path, output_path):
     
     arcpy.AddMessage("\t\tCreating a temporay water layer for the municipality from FKB data...")
@@ -56,7 +58,6 @@ def select_building(input_path, study_area_path, output_path):
     return v_building
 
 def mask_tree(all_trees, v_building, v_sea, selected_trees):
-
 
     arcpy.AddMessage("\t\tSelecting trees outside building footprints and sea areas...")
     l_tree_pnt_outside = arcpy.MakeFeatureLayer_management(

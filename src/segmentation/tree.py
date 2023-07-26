@@ -6,7 +6,7 @@ import logging
 
 from src import logger
 
-logger.setup_logger(logfile=True)
+logger.setup_logger(logfile=False)
 logger = logging.getLogger(__name__)
 
 # ------------------------------------------------------ #
@@ -279,10 +279,6 @@ def focal_meanFilter(r_chm_h,chm_noise_removal):
     outFocalStat.save(chm_noise_removal)
     
     return 
-
-
-
-
     
 def focal_maxFilter(r_chm_h, r_chm_smooth, radius):
     """_summary_
@@ -308,13 +304,33 @@ def focal_maxFilter(r_chm_h, r_chm_smooth, radius):
 # 1.5 THE WATERSHED SEGMENTATION METHOD
 # ------------------------------------------------------ #
 
-def watershed_segmentation(r_chm_smooth,r_chm_flip,r_flowdir,r_sinks,r_watersheds):
+def watershed_segmentation(r_chm_input,r_chm_flip,r_flowdir,r_sinks,r_watersheds):
+    """ Watershed Segmentation Method:
+    
+    The method is based on the following steps: 
+    1. Flip CHM raster (multiply by -1)
+    2. Compute flow direction
+    3. Identify sinks
+    4. Identify watersheds
+    
+    Best to use a CHM that is clipped to a smaller area (e.g. municipality) to speed up processing time.
+    Note that when clipping the CHM to a smaller area, you need to buffer the CHM to avoid edge effects.
 
+    Args:
+        r_chm_input (_type_): input chm raster path
+        r_chm_flip (_type_): path tho the flipped chm raster
+        r_flowdir (_type_): path to the flow direction raster
+        r_sinks (_type_): path to the sinks raster
+        r_watersheds (_type_): path to the watersheds raster
+
+    Returns:
+        _type_: _description_
+    """
     # flip CHM
-    def flip_CHM(r_chm_smooth):
+    def flip_CHM(r_chm_input):
         logger.info("\t\tFlipping CHM...")
         arcpy.gp.RasterCalculator_sa(
-            '"{}"*(-1)'.format(r_chm_smooth), 
+            '"{}"*(-1)'.format(r_chm_input), 
             r_chm_flip
         )
         return r_chm_flip
@@ -326,7 +342,7 @@ def watershed_segmentation(r_chm_smooth,r_chm_flip,r_flowdir,r_sinks,r_watershed
             r_chm_flip, 
             r_flowdir
         )
-        arcpy.Delete_management(r_chm_flip)
+        #arcpy.Delete_management(r_chm_flip)
         return r_flowdir
     
     # Identify sinks
@@ -347,13 +363,13 @@ def watershed_segmentation(r_chm_smooth,r_chm_flip,r_flowdir,r_sinks,r_watershed
             r_watersheds,
             "Value"
         ) 
-        arcpy.Delete_management(r_flowdir)
+        #arcpy.Delete_management(r_flowdir)
         #arcpy.Delete_management(r_sinks)
         return r_watersheds
         
     # call nested functions     
 
-    flip_CHM(r_chm_smooth)
+    flip_CHM(r_chm_input)
     comp_flowDir(r_chm_flip)
     identify_sinks(r_flowdir)
     identify_watersheds(r_flowdir, r_sinks)
@@ -365,7 +381,7 @@ def watershed_segmentation(r_chm_smooth,r_chm_flip,r_flowdir,r_sinks,r_watershed
 # step 7 perform_tree_detection_v2 (version 1 not used)
 # ------------------------------------------------------ #
 
-def identify_treeTops(r_sinks, r_focflow, v_treetop_poly,v_treetop_singlepoly, r_chm_h, r_dsm, v_treetop_pnt):
+def identify_treeTops(r_sinks, r_focflow, v_top_poly,v_top_singlepoly, v_top_watershed):
     
     # Identify tree tops (I) by identifying focal flow
     def identify_focalFlow():
@@ -384,14 +400,14 @@ def identify_treeTops(r_sinks, r_focflow, v_treetop_poly,v_treetop_singlepoly, r
     
         arcpy.RasterToPolygon_conversion(
             in_raster = r_focflow,
-            out_polygon_features = v_treetop_poly, 
+            out_polygon_features = v_top_poly, 
             simplify = "NO_SIMPLIFY",       # treedetection_v1 uses "SIMPLIFY" to speed up the processingtime
             raster_field = "Value", 
             create_multipart_features = "SINGLE_OUTER_PART", 
             max_vertices_per_feature = ""
         )
         arcpy.Delete_management(r_focflow)
-        return v_treetop_poly
+        return v_top_poly
       
 
     # Convert tree top polygons to points
@@ -401,42 +417,36 @@ def identify_treeTops(r_sinks, r_focflow, v_treetop_poly,v_treetop_singlepoly, r
         # Convert multipart polygons to single part polgyons 
         # This ensures that tree top polygons can be converted to points
         arcpy.MultipartToSinglepart_management(
-            in_features=v_treetop_poly, 
-            out_feature_class=v_treetop_singlepoly, 
+            in_features=v_top_poly, 
+            out_feature_class=v_top_singlepoly, 
         )
         arcpy.FeatureToPoint_management(
-            in_features = v_treetop_poly,
-            out_feature_class = v_treetop_pnt, 
+            in_features = v_top_poly,
+            out_feature_class = v_top_watershed, 
             point_location = "INSIDE"
         )
-        arcpy.Delete_management(v_treetop_poly)
-        arcpy.Delete_management(v_treetop_singlepoly)
+        arcpy.Delete_management(v_top_poly)
+        arcpy.Delete_management(v_top_singlepoly)
 
-        # Extract tree height (from CHM) and tree altitude (from DSM) to tree points   
-        arcpy.gp.ExtractMultiValuesToPoints_sa(
-            v_treetop_pnt,
-            "'{}' tree_height;'{}' tree_altit".format(r_chm_h, r_dsm),
-            "NONE"
-            )
-        return v_treetop_pnt
+        return v_top_watershed
     
     identify_focalFlow()
-    #convert_focalFlow()
+
     focalFlow_toVector()
     focalFlow_vectorToPoint()
     
-    return v_treetop_pnt
+    return v_top_watershed
 
 # ------------------------------------------------------ #
 #  1.7 IDENTIFY TREE CROWNS
 # ------------------------------------------------------ #
 
-def identify_treeCrowns(r_watersheds, v_treecrown_poly):
+def identify_treeCrowns(r_watersheds, v_crown_watershed):
     logger.info("\t\tIdentifying tree crowns by vectorizing watersheds...")
     
     arcpy.RasterToPolygon_conversion(
         in_raster = r_watersheds,
-        out_polygon_features = v_treecrown_poly, 
+        out_polygon_features = v_crown_watershed, 
         simplify = "NO_SIMPLIFY",  # treedetection_v1 uses "SIMPLIFY" to speed up the processingtime
         raster_field = "Value", 
         create_multipart_features = "SINGLE_OUTER_PART", 
@@ -444,7 +454,7 @@ def identify_treeCrowns(r_watersheds, v_treecrown_poly):
     )
     #arcpy.Delete_management(r_watersheds)
     
-    return v_treecrown_poly
+    return v_crown_watershed
 
 # ------------------------------------------------------ #
 #  1.8 
@@ -473,5 +483,8 @@ def topology_crownTop(input_tree, selecting_tree, output_tree):
     return output_tree
 
 
-
+if __name__ == '__main__':
+    
+    logger.setup_logger(logfile=False)
+    logger = logging.getLogger(__name__)
 

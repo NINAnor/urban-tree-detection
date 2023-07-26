@@ -3,6 +3,13 @@ import arcpy
 from arcpy.sa import *
 from arcpy.ia import *
 import os
+import logging
+
+from src import logger
+#from logger import setup_logger
+
+logger.setup_logger(logfile=False)
+logger = logging.getLogger(__name__)
 
 # --------------------------------------------------------------------------- #
 # LOOKUP AND RECLASSIY/RENAME FUNCTIONS
@@ -68,11 +75,9 @@ def join_and_copy(t_dest:str, join_a_dest:str, t_src:str, join_a_src:str, a_src:
     # Join
     arcpy.AddJoin_management(l_dest, join_a_dest, t_src, join_a_src)
     
-
-    
     # Copy attributes   
     for src_field, dest_field in zip(a_src, a_dest):
-        arcpy.AddMessage(
+        logger.info(
             "\tCopying values from " + name_src +  "." + src_field + " to " + name_dest + "." + dest_field
         )
         arcpy.CalculateField_management(
@@ -117,10 +122,31 @@ def createGDB_ifNotExists(filegdb_path:str):
     """
     filegdb_name = os.path.basename(filegdb_path)
     if arcpy.Exists(filegdb_path):
-        arcpy.AddMessage("\tFileGDB {} already exists. Continue...".format(filegdb_name))
+        logger.info("\tFileGDB {} already exists. Continue...".format(filegdb_name))
     else:
         dir_path = os.path.dirname(filegdb_path)
         arcpy.management.CreateFileGDB(dir_path, filegdb_name)
+        
+def createDataset_ifNotExists(gdb_path:str, dataset_name:str, coord_system:str):
+    """_summary_
+
+    Args:
+        gdb_path (str): _description_
+        dataset_name (str): _description_
+        spatial_reference (str): _description_
+    """
+     
+    if arcpy.Exists(os.path.join(gdb_path, dataset_name)):
+        logger.info(f"\tDataset {dataset_name} already exists. Continue...")
+    else:
+        logger.info(f"\tCreating dataset {dataset_name}...")
+        # create dataset in filegdb 
+        arcpy.CreateFeatureDataset_management(
+            out_dataset_path = gdb_path,
+            out_name = dataset_name, 
+            spatial_reference = coord_system
+        )     
+                    
         
 def copyFeature_ifNotExists(in_fc:str, out_fc:str):
     """
@@ -131,7 +157,7 @@ def copyFeature_ifNotExists(in_fc:str, out_fc:str):
         out_fc (str): path to the output feature 
     """
     if arcpy.Exists(out_fc):
-        arcpy.AddMessage(f"\tFeature {os.path.basename(out_fc)} already exists. Continue...")
+        logger.info(f"\tFeature {os.path.basename(out_fc)} already exists. Continue...")
     else:
         arcpy.management.CopyFeatures(in_fc, out_fc)
 
@@ -195,9 +221,9 @@ def calculateField_ifEmpty(in_table:str, field:str, expression:str, code_block="
             expression_type="PYTHON_9.3",
             code_block=code_block
         )
-        arcpy.AddMessage(f"\tThe Column <{field}> has been recalculated.")
+        logger.info(f"\tThe Column <{field}> has filled with values. Continue...")
     else:
-        arcpy.AddMessage(f"\tThe Column <{field}> does not contain null or empty values.")
+        logger.info(f"\tThe Column <{field}> does not contain null or empty values.")
 
 
 def check_isNull(in_table:str, field:str) -> bool:
@@ -222,12 +248,12 @@ def check_isNull(in_table:str, field:str) -> bool:
             if row[0] == "null values":
                 null_count +=1
                 
-        arcpy.AddMessage(f"\tThe count of Null values in {field} is: {null_count}") 
+        logger.info(f"\tThe count of Null values in {field} is: {null_count}") 
         if null_count == 0:
-            arcpy.AddMessage("\tThe field is already populated. Continue..")
+            logger.info("\tThe field is already populated. Continue..")
             return False
         else:
-            arcpy.AddMessage("\tThe field contains null values. Recalculate...")
+            logger.info("\tThe field contains null values. Recalculate...")
             return True
 
 
@@ -333,3 +359,68 @@ def rasterList_toMosaic(raster_list, ouput_gdb, output_name, coord_system, spati
         mosaic_method="MEAN",
         mosaic_colormap_mode="FIRST"
     )
+
+# --------------------------------------------------------------------------- #
+# Split Neighbourhoods Functions
+# --------------------------------------------------------------------------- #
+
+def split_neighbourhoods(neighbourhood_path, n_field_name, split_neighbourhoods_gdb):
+    
+    # split neighbourhoods features into separate features and save them as separate layers in a filegdb
+    
+    # create a gdb for neighbourhoods
+    createGDB_ifNotExists(split_neighbourhoods_gdb)
+    
+    # create a list of neighbourhoods
+    neighbourhoods_list = []
+    with arcpy.da.SearchCursor(neighbourhood_path, n_field_name) as cursor: 
+        for row in cursor:
+            neighbourhoods_list.append(row[0])
+    
+    logger.info(f"\tNeighbourhoods:\t{neighbourhoods_list}")
+    
+   
+    
+    # split neighbourhoods
+    for n in neighbourhoods_list:
+        logger.info(f"\tSplitting neighbourhood {n}...")
+        arcpy.Select_analysis(
+            in_features = neighbourhood_path,
+            out_feature_class = os.path.join(split_neighbourhoods_gdb, f"b_{n}"),
+            where_clause = f"{n_field_name} = '{n}'"
+        )
+
+
+def get_neighbourhood_list(neighbourhood_path, n_field_name):
+    
+    get_list = lambda neighbourhood_path, n_field_name: [row[0] for row in arcpy.da.SearchCursor(neighbourhood_path, n_field_name)]
+    neighbourhood_list = get_list(neighbourhood_path, n_field_name)
+
+    return neighbourhood_list
+
+
+
+if __name__ == '__main__':
+    
+    logger.setup_logger(logfile=False)
+    logger = logging.getLogger(__name__)
+  
+  
+def round_fields_two_decimals(feature_class, fields_to_round: list):
+    """
+    Rounds the values in all FLOAT fields in a feature class to two decimal places.
+
+    Args:
+        feature_class (str): The path to the feature class.
+        field_to_round (list): A list of field names to round.
+    """
+
+
+    # Update the attribute values using the Calculate Field tool
+    for field in fields_to_round:
+        expression = "round(!{}!, 2)".format(field)
+        arcpy.CalculateField_management(feature_class, field, expression, "PYTHON9.3")
+
+    logger.info("Rounding completed.")    
+    
+    
