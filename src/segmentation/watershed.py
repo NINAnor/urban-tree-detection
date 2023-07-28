@@ -19,7 +19,7 @@ from compute_attribute import LaserAttributes
 
 # local sub-package utils
 from src import arcpy_utils as au
-from src import (MUNICIPALITY, DATA_PATH, INTERIM_PATH, PROCESSED_PATH,
+from src import (MUNICIPALITY, DATA_PATH, RAW_PATH, INTERIM_PATH, PROCESSED_PATH,
                  SPATIAL_REFERENCE, COORD_SYSTEM, POINT_DENSITY)
 from src import logger
 
@@ -74,7 +74,7 @@ def detect_watershed(neighbourhood_list, r_chm):
         v_neighb_buffer = os.path.join(split_neighbourhoods_gdb, "b_" + n_code + "_buffer200")
         
         # chm clipped by neighbourhood
-        r_chm_neighb = os.path.join(filegdb_path, "chm_neighb_200m")
+        r_chm_neighb = os.path.join(split_chm_gdb, "chm_" + "b_" + n_code + "_buffer200")
         
         # watershed segmentation
         r_chm_flip = os.path.join(filegdb_path, "chm_flip") 
@@ -285,7 +285,7 @@ def detect_other_trees(neighbourhood_list):
         v_neighb = os.path.join(split_neighbourhoods_gdb, "b_" + n_code)
         
         # chm clipped by neighbourhood
-        r_chm_neighb = os.path.join(filegdb_path, "chm_neighb_200m")
+        r_chm_neighb = os.path.join(split_chm_gdb, "chm_" + "b_" + n_code + "_buffer200")
         
         # watershed trees
         v_crown_watershed = os.path.join(filegdb_path, "crowns_watershed_"+ n_code) # RESULTING tree crowns from watershed 
@@ -731,7 +731,7 @@ def detect_falsePositives(neighbourhood_list):
 
 if __name__ == '__main__':
     
-    logger.setup_logger(logfile=False)
+    logger.setup_logger(logfile=True)
     logger = logging.getLogger(__name__)
     
     # start timer
@@ -746,6 +746,10 @@ if __name__ == '__main__':
 
     # specific file paths
     tree_detection_path = os.path.join(INTERIM_PATH, "tree_detection")
+    # create folder in tree_detection_path if not exits
+    if not os.path.exists(tree_detection_path):
+        logger.info("Creating folder {} ...".format(tree_detection_path))
+        os.makedirs(tree_detection_path)
 
     # admin data
     admin_data_path = os.path.join(DATA_PATH, kommune, "general", kommune + "_admindata.gdb")
@@ -755,9 +759,25 @@ if __name__ == '__main__':
     neighbourhood_path = os.path.join(admin_data_path, "bydeler")
     n_field_name = "bydelnummer"
     
-    neighbourhood_list = ["420409", "420411"]
-    #neighbourhood_list = au.get_neighbourhood_list(neighbourhood_path, n_field_name)
-
+    #TODO add test an prod config settings 
+    user_input = input("Is this a TEST or PROD run? (TEST/PROD):")
+    
+    if user_input == "TEST" or "test" or "Test":
+        if kommune == "kristiansand":
+            n_test = ['420409', '420411']
+        if kommune == "bodo":
+            n_test = ['180402','180403']
+        logger.info("Test neighbourhoods in {} are {}: ".format(kommune,n_test))
+        neighbourhood_list = n_test
+        logger.info("Test starts for neighbourhood(s): {}".format(neighbourhood_list))
+        keep_temp = True
+        logger.info("\tInterim filegdb's will be kept ...")
+    #else: 
+        #neighbourhood_list = au.get_neighbourhood_list(neighbourhood_path, n_field_name)
+        #logger.info("Processing neighbourhoods: {}".format(neighbourhood_list))
+        #keep_temp = False
+        #logger.info("\tInterim filegdb's will be deleted ...")
+    
     # split neighbourhoods    
     split_neighbourhoods_gdb = os.path.join(INTERIM_PATH, "bydeler_split.gdb")
     if not arcpy.Exists(split_neighbourhoods_gdb): 
@@ -781,9 +801,17 @@ if __name__ == '__main__':
 
     # canopy height raster (note values are x100)
     # TODO move chm_025m_int_100x to config file
-    r_chm = os.path.join(gdb_elevation_data, "chm_025m_int_100x")
-    r_dtm = os.path.join(gdb_elevation_data, "dtm_025m_int_100x") # for adding tree altitude to tree points
+    str_resolution= str(spatial_resolution).replace(".", "")
     
+    r_chm = os.path.join(gdb_elevation_data, "chm_" + str(str_resolution) + "m_int_100x")
+    r_dtm = os.path.join(gdb_elevation_data, "dtm_"+ str(str_resolution) + "m_int_100x") # for adding tree altitude to tree points
+    
+    
+    # split neighbourhoods    
+    split_chm_gdb = os.path.join(INTERIM_PATH, "chm_split.gdb")
+    if not arcpy.Exists(split_chm_gdb): 
+        au.createGDB_ifNotExists(split_chm_gdb)
+    # TODO check if folder structure exists (especially intierm/tree_detection)
     # ------------------------------------------------------ #
     # OUTPUT PATHS
     # ------------------------------------------------------ #
@@ -810,14 +838,7 @@ if __name__ == '__main__':
     logger.info("Output gdb:\t\t\t" + gdb_laser_urban_trees)
     logger.info("-"*100)
     
-    user_input = input("Do you want to keep the interim chm filegdb's? (y/n):")
-    
-    if user_input == "y" or "yes" or "true" or "1" or "True":
-        keep_temp = True
-        logger.info("\tInterim filegdb's will be kept ...")
-    else:
-        keep_temp = False
-        logger.info("\tInterim filegdb's will be deleted ...")
+
         
     # ------------------------------------------------------ #
     # RUN FUNCTIONS
@@ -826,7 +847,7 @@ if __name__ == '__main__':
     # TODO move functions to separate modules and run from root
     # TODO add if and try statements
     #detect_watershed(neighbourhood_list, r_chm)
-    #detect_other_trees(neighbourhood_list)
+    detect_other_trees(neighbourhood_list)
     merge_trees(neighbourhood_list)
     calculate_attributes()
     detect_falsePositives(neighbourhood_list)
