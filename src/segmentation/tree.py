@@ -270,7 +270,7 @@ def focal_meanFilter(r_chm_h,chm_noise_removal):
     """       
     outFocalStat = arcpy.ia.FocalStatistics(
         in_raster=r_chm_h,
-        neighborhood="Rectangle 1 1 MAP",
+        neighborhood="Rectangle 1.5 1.5 MAP", # 1 for kristiansand, 1.5 for bodo 
         statistics_type="MEAN",
         ignore_nodata="NODATA",
         percentile_value=90

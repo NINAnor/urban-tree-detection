@@ -84,6 +84,7 @@ if MUNICIPALITY.lower() == "bodo":
     VEG_CLASSES_AVAILABLE = False
     POINT_DENSITY = 2
     MIN_HEIGHT = 2 
-    FOCAL_MAX_RADIUS = 1.5
+    FOCAL_MAX_RADIUS = 1  # 1.5 makes trees too big!
 
+#TODO add focal_mean_radius to config.yaml (1.5 bodo, 1 kristiansand)
 

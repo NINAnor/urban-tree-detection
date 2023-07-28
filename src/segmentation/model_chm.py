@@ -257,6 +257,8 @@ def model_chm(lidar_path, kommune):
         list_dtm_files.append(r_dtm_int)
         list_dsm_files.append(r_dsm_int)
         list_chm_files.append(r_chm_int)
+        
+        #break
 
     # ------------------------------------------------------ #
     # 1.7 MOSAIC FILES IN THE CHM, DTM, DSM lists
@@ -337,7 +339,7 @@ if __name__ == '__main__':
     if user_input == "y" or "yes" or "true" or "1" or "True":
         keep_temp = True
         logger.info("\tInterim filegdb's will be kept ...")
-    else:
+    if user_input == "n" or "no" or "false" or "0" or "False":
         keep_temp = False
         logger.info("\tInterim filegdb's will be deleted ...")
     
