@@ -1,0 +1,12 @@
+[tool.black]
+# https://github.com/psf/black
+line-length = 80
+color = true
+
+[tool.isort]
+# https://pycqa.github.io/isort/docs/configuration/black_compatibility.html
+profile = "black"
+
+[tool.ruff]
+fix = true
+ignore = ["E501"]

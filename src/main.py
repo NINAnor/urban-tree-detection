@@ -10,8 +10,12 @@ logger.setup_logger(logfile=True)
 logger = logging.getLogger(__name__)
 
 # check municipality
-confirm_municipality = input(f"Is '{MUNICIPALITY}' the correct municipality? (y/n): ").strip().lower()
-if confirm_municipality != 'y':
+confirm_municipality = (
+    input(f"Is '{MUNICIPALITY}' the correct municipality? (y/n): ")
+    .strip()
+    .lower()
+)
+if confirm_municipality != "y":
     logger.info("User disagreed with the municipality.")
     exit()
 
@@ -20,5 +24,3 @@ if confirm_municipality != 'y':
 prepare_lidar.main(MUNICIPALITY)
 # create main()
 segment_trees.main()
-
-
