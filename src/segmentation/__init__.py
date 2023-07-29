@@ -7,3 +7,5 @@ Modules necessary for the module:
 """
 
 from src import arcpy_utils
+from src import LaserAttributes
+from src import AdminAttributes

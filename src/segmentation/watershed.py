@@ -15,7 +15,9 @@ import logging
 
 # local sub-package modules
 import tree
-from compute_attribute import LaserAttributes
+from src import LaserAttributes
+from src import AdminAttributes
+from src import GeometryAttributes
 
 # local sub-package utils
 from src import arcpy_utils as au
@@ -262,20 +264,27 @@ def detect_watershed(neighbourhood_list, r_chm):
         # ------------------------------------------------------ #
         # 1.6 ADD METHOD AS ATTRIBUTE TO TREES
         # ------------------------------------------------------ #
+        
+        # init attribute classes
+        LaserAttribute = LaserAttributes(
+            filegdb_path,v_crown_watershed,v_top_watershed
+            )
+        
+        AdminAttribute = AdminAttributes(
+            filegdb_path,v_crown_watershed,v_top_watershed
+            )
+        
         logger.info("\t1.6 Add tree detection method as attribute to trees.")
-        nb_attribute = LaserAttributes(
-            filegdb_path, v_crown_watershed, v_top_watershed
-        )
         segmentation_method = '"watershed_segmentation"'
-        nb_attribute.attr_segMethod(segmentation_method)
+        LaserAttribute.attr_segMethod(segmentation_method)
 
         # ------------------------------------------------------ #
         # 1.7 ADD NEIGHBOURHOOD CODE AS ATTRIBUTE TO TREES
         # ------------------------------------------------------ #
 
         logger.info("\t1.7 Add neighbourhood code as attribute to trees.")
-        nb_attribute.delete_adminAttr()
-        nb_attribute.attr_neighbCode(n_code)
+        AdminAttribute.delete_adminAttr()
+        AdminAttribute.attr_neighbCode(n_code)
 
         # ------------------------------------------------------ #
         # 1.8 ADD TREE HEIGHT AS ATTRIBUTE TO TREE TOPS
@@ -284,7 +293,7 @@ def detect_watershed(neighbourhood_list, r_chm):
             "\t1.8 Add tree height and tree altitude as attribute to tree tops."
         )
         str_multiplier = "100x"
-        nb_attribute.attr_topHeight(
+        LaserAttribute.attr_topHeight(
             v_top_watershed, r_chm_neighb, r_dtm, str_multiplier
         )
 
@@ -534,20 +543,27 @@ def detect_other_trees(neighbourhood_list):
         # 2.8 ADD METHOD AS ATTRIBUTE TO TREES
         # ------------------------------------------------------ #
 
-        logger.info("\t2.7 Add tree detection method as attribute to trees.")
-        nb_attribute = LaserAttributes(
-            filegdb_path, v_other_crowns, v_other_tops
+        # init attribute classes
+        LaserAttribute = LaserAttributes(
+            filegdb_path,v_other_crowns,v_other_tops
+            )
+        
+        AdminAttribute = AdminAttributes(
+            filegdb_path,v_other_crowns,v_other_tops
         )
+
+        logger.info("\t2.7 Add tree detection method as attribute to trees.")
+
         segmentation_method = '"other_dissolve"'
-        nb_attribute.attr_segMethod(segmentation_method)
+        LaserAttribute.attr_segMethod(segmentation_method)
 
         # ------------------------------------------------------ #
         # 2.7 ADD NEIGHBOURHOOD CODE AS ATTRIBUTE TO TREES
         # ------------------------------------------------------ #
 
         logger.info("\t2.9 Add neighbourhood code as attribute to trees.")
-        nb_attribute.delete_adminAttr()
-        nb_attribute.attr_neighbCode(n_code)
+        AdminAttribute.delete_adminAttr()
+        AdminAttribute.attr_neighbCode(n_code)
 
         # ------------------------------------------------------ #
         # 2.9 ADD TREE HEIGHT AS ATTRIBUTE TO TREES
@@ -572,7 +588,7 @@ def detect_other_trees(neighbourhood_list):
 
         str_multiplier = "100x"
 
-        nb_attribute.attr_topHeight(
+        LaserAttribute.attr_topHeight(
             v_other_tops, r_zonal_max, r_dtm, str_multiplier
         )
 
@@ -718,30 +734,31 @@ def calculate_attributes():
         # 4. Calculate attributes
         # ------------------------------------------------------ #
 
-        # init class to calculate attributes derived from the laser modelled CHM
-        Attribute = LaserAttributes(filegdb_path, v_crown_temp, v_top_temp)
-
+        # init class to calculate attributes 
+        AdminAttribute = AdminAttributes(filegdb_path, v_crown_temp, v_top_temp)
+        LaserAttribute = LaserAttributes(filegdb_path, v_crown_temp, v_top_temp)
+        GeometryAttribute = GeometryAttributes(filegdb_path, v_crown_temp, v_top_temp)
         # calculate attributes for tree crowns
         # nb_code in loop
-        Attribute.delete_adminAttr()
-        Attribute.attr_crownID(n_code)
-        Attribute.attr_crownDiam()
-        Attribute.attr_crownArea()  # crown_area and crown_perimeter
+        AdminAttribute.delete_adminAttr()
+        AdminAttribute.attr_crownID(n_code)
+        GeometryAttribute.attr_crownDiam()
+        GeometryAttribute.attr_crownArea()  # crown_area and crown_perimeter
 
         # calculate attributes for enclosing circle, convex hull and envelope
         # if you want to keep the temporary MBG layers, set keep_temp=True
-        Attribute.attr_enclosingCircle(keep_temp=True)
-        Attribute.attr_convexHull(keep_temp=True)
-        Attribute.attr_envelope(keep_temp=True)
+        GeometryAttribute.attr_enclosingCircle(keep_temp=True)
+        GeometryAttribute.attr_convexHull(keep_temp=True)
+        GeometryAttribute.attr_envelope(keep_temp=True)
 
         # calculate attributes for tree tops
         # nb_code and tree height/altitude in loop
-        Attribute.delete_adminAttr()
-        Attribute.join_crownID_toTop()
+        AdminAttribute.delete_adminAttr()
+        AdminAttribute.join_crownID_toTop()
 
         # join top attributes to crown polygons
-        Attribute.join_topAttr_toCrown()  # tree_height_laser and tree_altit
-        Attribute.attr_crownVolume()
+        LaserAttribute.join_topAttr_toCrown()  # tree_height_laser and tree_altit
+        GeometryAttribute.attr_crownVolume()
 
     logger.info("Finished calculating attributes for the detected trees ...")
 

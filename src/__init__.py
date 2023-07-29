@@ -33,3 +33,7 @@ from src.utils.config import (
 )
 from src.utils import logger
 from src.utils import arcpy_utils
+from src.compute_attributes.admin_attributes import AdminAttributes
+from src.compute_attributes.laser_attributes import LaserAttributes 
+from src.compute_attributes.geometry_attributes import GeometryAttributes
+
