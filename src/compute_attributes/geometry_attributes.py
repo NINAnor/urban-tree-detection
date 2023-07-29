@@ -29,7 +29,10 @@ class GeometryAttributes:
     - attr_convexHull(self, keep_temp: bool)
     - attr_envelope(self, keep_temp: bool)  
     """
-    
+    def __init__(self, path: str, crown_filename: str, point_filename: str):
+        self.path = path
+        self.crown_filename = crown_filename
+        self.top_filename = point_filename
 
     def attr_crownArea(self):
         """

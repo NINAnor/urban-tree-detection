@@ -30,10 +30,10 @@ class LaserAttributes:
     
    """
 
-    def __init__(self, path: str, crown_filename: str, top_filename: str):
+    def __init__(self, path: str, crown_filename: str, point_filename: str):
         self.path = path
         self.crown_filename = crown_filename
-        self.top_filename = top_filename
+        self.top_filename = point_filename
 
     def attr_lidarTile(self, tile_code: str):
         """

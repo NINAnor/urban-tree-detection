@@ -40,6 +40,11 @@ class AdminAttributes:
   
     """
     
+    def __init__(self, path: str, crown_filename: str, point_filename: str):
+        self.path = path
+        self.crown_filename = crown_filename
+        self.top_filename = point_filename
+        
     def attr_GlobalID(self):
         """
         Compute a GlobalID for crown polygons and add it to the crown feature class as GlobalID
