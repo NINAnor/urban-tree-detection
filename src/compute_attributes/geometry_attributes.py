@@ -24,6 +24,7 @@ class GeometryAttributes:
     Methods:
     --------
     - attr_crownArea(self)
+    - attr_crownDiam(self)
     - attr_crownVolume(self)
     - attr_enclosingCircle(self, keep_temp: bool)
     - attr_convexHull(self, keep_temp: bool)
