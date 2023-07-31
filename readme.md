@@ -3,14 +3,22 @@ urban-treeDetection
 
 **repo-status: work in progress**
 
-This project provides a workflow for detecting trees in urban areas using Airborne Laser Scanning (ALS) data and national geographic datasets.
+This project provides a workflow for detecting trees in urban areas using Airborne Laser Scanning (ALS) data and national geographic datasets. The output is a tree database with **tree crown** polygons and **tree top** points per neighbourhood. 
+
+This tree database can be used as input for the [i-Tree Eco](https://www.itreetools.org/tools/i-tree-eco) model to estimate the ecosystem services of trees in urban areas. However, the laser data must be supplemented with in situ tree data (e.g. tree species, dbh, etc.) and gis-derived data (e.g. land use, building footprints, etc.) to succesfully run the i-Tree Eco model. The repository *[itree-supportTools](https://github.com/ac-willeke/itree-supportTools)* provides a workflow for preparing and linking in situ data and gis-derived data to the detected laser trees. 
+
+In addition, the tree crowns can be used as an input to model other ecosystem services not included in the i-Tree Eco model, such as   local climate regulating services and tree crown visibility cultural services. These workflows are included in the following repositories:
+
+- [urban-climateServices](<https://github.com/ac-willeke>) for urban heat modelling
+- [r.viewshed.exposure](<https://github.com/OSGeo/grass-addons/tree/grass8/src/raster/r.viewshed.exposure>) for estimating tree crown visibility.
+- [r.viewshed.impact](https://github.com/zofie-cimburova/r.viewshed.impact) for estimating tree crown impact. 
+
 
 ------------
 
 Code is provided for the following tasks:
 
-1. **preparing Airborne laser scanning (ALS)** data from Kartverket (<https://hoydedata.no/>)
-
+1. **preparing Airborne laser scanning (ALS)** data from [Kartverket](https://hoydedata.no/).
 2. **detecting tree crowns** in the built-up zone of Norwegian municipalities using a watershed segmentation method following the workflow from *Hanssen et al. (2021)*.
 
 3. **detecing false positives**  (e.g. objects that are detected as trees but are instead buildings, lamp posts, etc.) by identifying outliers in the geometrical shape of the tree crowns.
@@ -22,9 +30,9 @@ The repository is applied on the Norwegian municipalities: *Bærum, Bodø, Krist
 
 ### Installation 
 
-The code is build in an ArcGIS Pro 3.1.0. conda environment with 3D analyst, image analyst, spatial analyst licensed. 
+The code runs in an ArcGIS Pro 3.1.0. conda environment and depends on 3D analyst, image analyst, spatial analyst licenses. 
 
-Here are the steps to create a conda env compatible with ArcGIS Pro 3.0.1 and to install the local project package `treeDetection`:
+Here are the steps to create a conda env compatible with ArcGIS Pro 3.0.1 and to install the local project package `urban-treeDetection`:
 
 1. Create a new conda environment with the necessary dependencies described in `environment.yml`
     
