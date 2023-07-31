@@ -175,6 +175,8 @@ poetry.toml
 /data/*
 !data/.gitkeep 
 !data/municipality
+data/municipality/general/*
+!data/municipality/general/*.md
 /tools/*
 # exception to the rule
 !tools/.gitkeep 
