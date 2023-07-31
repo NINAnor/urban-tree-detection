@@ -12,11 +12,16 @@ import logging
 from src import *
 
 
-# fuctions
-
+# --------------------------------------------------------------------------- #
+# FUNCTIONS
+# --------------------------------------------------------------------------- #
 
 def main():
-    print("make main script")
+    logger.info("Starting main()")
+
+    logger.info("Finished main()")
+
+
 
 
 if __name__ == "__main__":
@@ -34,4 +39,5 @@ if __name__ == "__main__":
     if confirm_municipality != "y":
         logger.info("User disagreed with the municipality.")
         exit()
+        
     main()
