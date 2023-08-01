@@ -71,7 +71,7 @@ if MUNICIPALITY.lower() == "oslo" or "baerum":
             PROJECTION["Transverse_Mercator"],\
             PARAMETER["False_Easting",500000.0],PARAMETER["False_Northing",0.0],PARAMETER["Central_Meridian",9.0],\
             PARAMETER["Scale_Factor",0.9996],PARAMETER["Latitude_Of_Origin",0.0],UNIT["Meter",1.0]]'
-    RGB_AVAILABLE = True
+    RGB_AVAILABLE = False   # set to true if you want to use TGI maks for tree segmentation
     VEG_CLASSES_AVAILABLE = True
     POINT_DENSITY = 10
     MIN_HEIGHT = 2.5

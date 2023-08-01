@@ -41,15 +41,12 @@ def create_DTM(d_las, r_dtm, spatial_resolution, study_area_path):
     """_summary_
 
     Args:
-        d_las (_type_): _description_
-        r_dtm (_type_): _description_
-        spatial_resolution (_type_): _description_
+    d_las (_type_): _description_
+    r_dtm (_type_): _description_
+    spatial_resolution (_type_): _description_
     """
-    logger.info(
-        "\t\tCreating DTM ({}x{}m) ...".format(
-            spatial_resolution, spatial_resolution
-        )
-    )
+
+    logger.info("\t\tCreating DTM ({}x{}m) ...".format(spatial_resolution, spatial_resolution))
 
     # select DTM points (class 2 = ground points)
     l_dtm = arcpy.CreateUniqueName("dtm_lyr")
@@ -84,6 +81,7 @@ def create_DTM(d_las, r_dtm, spatial_resolution, study_area_path):
         in_raster=temp,
         in_mask_data=study_area_path,
     )
+    
     r_masked.save(r_dtm)
     arcpy.Delete_management(temp)
 
@@ -161,7 +159,7 @@ def create_CHM(r_dtm, r_dsm, r_chm):
 
 
 def create_RGB(
-    d_las: str, r_rgb: str, study_area_path: str, spatial_resolution: float
+    d_las: str, r_rgb: str, study_area_path: str
 ):
     """_summary_
 
@@ -177,9 +175,9 @@ def create_RGB(
         out_raster=temp,
         value_field="RGB",
         interpolation_type="BINNING NEAREST NATURAL_NEIGHBOR",
-        data_type="FLOAT",  # Set to "INT" for speeding up analysis
+        data_type="INT",  # must be INT
         sampling_type="CELLSIZE",
-        sampling_value=spatial_resolution,
+        sampling_value="1", # must be 1
         z_factor="1",
     )
 
@@ -225,7 +223,7 @@ def tgi_toVector(r_tgi, v_tgi):
     arcpy.RasterToPolygon_conversion(
         in_raster=r_tgi,
         out_polygon_features=v_tgi,
-        simplify="NO_SIMPLIFY",  # treedetection_v1 uses "SIMPLIFY" to speed up the processingtime
+        simplify="SIMPLIFY",  # treedetection_v1 uses "SIMPLIFY" to speed up the processingtime
         raster_field="Value",
         create_multipart_features="SINGLE_OUTER_PART",
         max_vertices_per_feature="",

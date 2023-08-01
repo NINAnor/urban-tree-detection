@@ -64,7 +64,11 @@ def model_chm(lidar_path, kommune):
     """
     logger.info("Start modelling the DTM, DSM and CHM ...")
     logger.info("-" * 100)
-
+    
+    # only read las files from project folder run the rest locally 
+    #p_lidar = input("Enter path to lidar data on P-drive: ")
+    p_lidar = r"P:\152022_itree_eco_ifront_synliggjore_trars_rolle_i_okosyst\data\baerum\urban-treeDetection\interim\lidar"
+   
     list_dtm_files = []
     list_dsm_files = []
     list_chm_files = []
@@ -72,14 +76,14 @@ def model_chm(lidar_path, kommune):
     # List the subdirectories in the folder
     tile_list = [
         f.name
-        for f in os.scandir(lidar_path)
+        for f in os.scandir(p_lidar)
         if f.is_dir() and not f.name.endswith(".gdb")
     ]
     n_tiles = len(
         [
             f
-            for f in os.listdir(lidar_path)
-            if os.path.isdir(os.path.join(lidar_path, f))
+            for f in os.listdir(p_lidar)
+            if os.path.isdir(os.path.join(p_lidar, f))
         ]
     )
 
@@ -90,17 +94,23 @@ def model_chm(lidar_path, kommune):
     )
     logger.info(tile_list)
 
+    tile_list = ['512_134'] 
+    #tile_list = ['512_135']
+    #tile_list = ['513_132', '513_133', '513_134', '513_135']
+    #tile_list = ['514_132', '514_133', '514_134', '514_135']
     # Detect trees per tile in tile_list
     for tile_code in tile_list:
+        # skip tiles that are already processed
+
         logger.info("\t---------------------".format(tile_code))
         logger.info("\tPROCESSING TILE <<{}>>".format(tile_code))
         logger.info("\t---------------------".format(tile_code))
 
         # layer paths
         l_las_folder = os.path.join(
-            lidar_path, tile_code
+            p_lidar, tile_code
         )  # IF NECESSARY, CHANGE PATH TO .las FILES
-        d_las = os.path.join(lidar_path, "tile_" + tile_code + ".lasd")
+        d_las = os.path.join(p_lidar, "tile_" + tile_code + ".lasd")
 
         # temporary filegdb for each tile to store intermediate results
         filegdb_path = os.path.join(lidar_path, "chm_" + tile_code + ".gdb")
@@ -121,14 +131,12 @@ def model_chm(lidar_path, kommune):
         # height models
         r_dtm = os.path.join(filegdb_path, "dtm")  # exported
         r_dsm = os.path.join(filegdb_path, "dsm")  # exported
-        r_chm = os.path.join(
-            filegdb_path, "chm"
-        )  # input_chm if vegetation mask not available
+        r_chm = os.path.join(filegdb_path, "chm")  # input_chm if vegetation mask not available
 
         # vegetation mask
         r_rgb = os.path.join(filegdb_path, "rgb")
-        r_tgi = os.path.join(filegdb_path, "tgi")
-        v_tgi = os.path.join(filegdb_path, "tgi")
+        r_tgi = os.path.join(filegdb_path, "r_tgi")
+        v_tgi = os.path.join(filegdb_path, "v_tgi")
 
         # refining and smoothing of chm
         r_chm_tgi = os.path.join(
@@ -150,15 +158,15 @@ def model_chm(lidar_path, kommune):
         # ------------------------------------------------------ #
         # 1.0 Create a 200m buffer around study area to avoid edge effect
         # ------------------------------------------------------ #
-
-        logger.info(
-            "\t1.0 Create a 200m buffer around study area to avoid edge effect"
-        )
-        arcpy.Buffer_analysis(
-            in_features=study_area_path,
-            out_feature_class=study_area_buffer,
-            buffer_distance_or_field=200,
-        )
+        if not arcpy.Exists(study_area_buffer):
+            logger.info(
+                "\t1.0 Create a 200m buffer around study area to avoid edge effect"
+            )
+            arcpy.Buffer_analysis(
+                in_features=study_area_path,
+                out_feature_class=study_area_buffer,
+                buffer_distance_or_field=200,
+            )
 
         # ------------------------------------------------------ #
         # 1.1 Create LAS Dataset
@@ -171,8 +179,8 @@ def model_chm(lidar_path, kommune):
                     tile_code
                 )
             )
-        else:
-            logger.info
+        if not arcpy.Exists(d_las):
+            logger.info("\t\tCreate LAS Dataset for tile <<{}>>".format(tile_code))
             start_time1 = time.time()
             tree.create_lasDataset(l_las_folder, d_las)
             end_time1(start_time1)
@@ -182,7 +190,7 @@ def model_chm(lidar_path, kommune):
         #     Create DTM (old 1.5)
         #     Create DSM (old 1.6)
         #     Create CHM (old 1.7)
-        #     Create CHM for the study area (TODO add +200m buffer to avoid edge effect?)
+        #     Create CHM for the study area 
         # ------------------------------------------------------ #
         logger.info("\t1.2 Create Canopy Height Model (CHM)")
 
@@ -351,6 +359,7 @@ def model_chm(lidar_path, kommune):
         list_chm_files.append(r_chm_int)
 
         # break
+        print("finished tile {}".format(tile_code))
 
     # ------------------------------------------------------ #
     # 1.7 MOSAIC FILES IN THE CHM, DTM, DSM lists
@@ -387,6 +396,7 @@ def model_chm(lidar_path, kommune):
     logger.info("\t\tDSM:\t{}".format(dsm_mosaic))
     logger.info("\t\tCHM:\t{}".format(chm_mosaic))
     logger.info("-" * 100)
+    print("Finished modelling the DTM, DSM and CHM ...")
     # ------------------------------------------------------ #
 
 

@@ -43,6 +43,8 @@ def setup_logger(logfile=False):
     for handler in LOGGER.handlers:
         LOGGER.removeHandler(handler)
 
+    # force logfile to be true
+    logfile = True
     if logfile:
         try:
             log_file_name = (

@@ -27,7 +27,6 @@ Code is provided for the following tasks:
 The repository is applied on the Norwegian municipalities: *Bærum, Bodø, Kristiansand* and *Oslo.* 
 
 ------------
-
 ### Installation 
 
 The code runs in an ArcGIS Pro 3.1.0. conda environment and depends on 3D analyst, image analyst, spatial analyst licenses. 
@@ -76,37 +75,36 @@ Run `src/test/test_config.py` to test the configuration and logger.
         LOCAL_GIT="path/to/the/local/version/of/this/repository" 
 
         
-### Detect trees in your Municipality 
---> project is not ready for use. 
-
-1. Create Folder structure
-
-2. Run the script `main.py`
-    - prepares lidar data
-    - segments tree crowns
-    - joins municpal dataset with laser dataset
-
-3. Run i-Tree Eco 
-
-4. Extrapolate i-Tree Eco values 
-
 ### Workflow
 
-1. Prepare Data 
-script catalog: `src\data`
-        a. Create project folder structure  
-        b. Clean and prepare the muncipality tree database `prepare_tree_db`
-        c. Clean and preprocess laser data `prepare_lidar`
-2. Lidar tree detection 
-script catalog: `src\segmentation`
-        
+1. **TODO:** Create Folder structure
 
+2. **TODO:** Import Data using FME
+a. study area [vector - fileGDB feature class]
+b. laser data [laz - zipped las file]  
+c. building footprints [vector - fileGDB feature class]
+d. water bodies [vector - fileGDB feature class]
+e. land use [vector - fileGDB feature class]
 
+2. Create a municipality-specific study area mask in ArcGIS Pro 
+We recommend to create a study area mask manually, as it is specific to each municipality and you might want to mask out areas that are not relevant for your analysis (e.g. water bodies, buildings but that are not yet available in national datasets). 
+**Example of a mask formula:**
+mask = study_area_200m_buffer - fkb_bygning_omr_1m_buffer - fkb_vann_omrade - ssb_lufthavn - ssb_bane 
 
+4. **TODO:** Pre-process the laser data
+script: `src\data\prepare_lidar.py`
+
+5. **TODO:** Detect tree crowns
+sub-package: `src\tree_detection`
+a. Create a Canopy Height Model (CHM) `model_chm.py`
+b. Detect trees using a watershed segmentation method `watershed_segmentation.py`
+c. Identify false positives `identify_false_positives.py`
+
+**TODO:**
+Step 1 can be run using makefile `src\Makefile`
+Steps 4 and 5 can be run using subroutines in `src\main.py`
 ### References 
 - Hanssen, F., Barton, D. N., Venter, Z. S., Nowell, M. S., & Cimburova, Z. (2021). Utilizing LiDAR data to map tree canopy for urban ecosystem extent and condition accounts in Oslo. Ecological Indicators, 130, 108007. https://doi.org/10.1016/j.ecolind.2021.108007
-
-### Citation 
 
 ### Acknowledgments
 
