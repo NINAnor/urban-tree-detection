@@ -64,11 +64,11 @@ def model_chm(lidar_path, kommune):
     """
     logger.info("Start modelling the DTM, DSM and CHM ...")
     logger.info("-" * 100)
-    
-    # only read las files from project folder run the rest locally 
-    #p_lidar = input("Enter path to lidar data on P-drive: ")
+
+    # only read las files from project folder run the rest locally
+    # p_lidar = input("Enter path to lidar data on P-drive: ")
     p_lidar = r"P:\152022_itree_eco_ifront_synliggjore_trars_rolle_i_okosyst\data\baerum\urban-treeDetection\interim\lidar"
-   
+
     list_dtm_files = []
     list_dsm_files = []
     list_chm_files = []
@@ -94,10 +94,10 @@ def model_chm(lidar_path, kommune):
     )
     logger.info(tile_list)
 
-    tile_list = ['512_134'] 
-    #tile_list = ['512_135']
-    #tile_list = ['513_132', '513_133', '513_134', '513_135']
-    #tile_list = ['514_132', '514_133', '514_134', '514_135']
+    tile_list = ["513_133"]  # sentrum
+    # tile_list = ['512_134', '512_135']
+    # tile_list = ['513_132', '513_133', '513_134', '513_135']
+    # tile_list = ['514_132', '514_133', '514_134', '514_135']
     # Detect trees per tile in tile_list
     for tile_code in tile_list:
         # skip tiles that are already processed
@@ -131,7 +131,9 @@ def model_chm(lidar_path, kommune):
         # height models
         r_dtm = os.path.join(filegdb_path, "dtm")  # exported
         r_dsm = os.path.join(filegdb_path, "dsm")  # exported
-        r_chm = os.path.join(filegdb_path, "chm")  # input_chm if vegetation mask not available
+        r_chm = os.path.join(
+            filegdb_path, "chm"
+        )  # input_chm if vegetation mask not available
 
         # vegetation mask
         r_rgb = os.path.join(filegdb_path, "rgb")
@@ -180,7 +182,9 @@ def model_chm(lidar_path, kommune):
                 )
             )
         if not arcpy.Exists(d_las):
-            logger.info("\t\tCreate LAS Dataset for tile <<{}>>".format(tile_code))
+            logger.info(
+                "\t\tCreate LAS Dataset for tile <<{}>>".format(tile_code)
+            )
             start_time1 = time.time()
             tree.create_lasDataset(l_las_folder, d_las)
             end_time1(start_time1)
@@ -190,7 +194,7 @@ def model_chm(lidar_path, kommune):
         #     Create DTM (old 1.5)
         #     Create DSM (old 1.6)
         #     Create CHM (old 1.7)
-        #     Create CHM for the study area 
+        #     Create CHM for the study area
         # ------------------------------------------------------ #
         logger.info("\t1.2 Create Canopy Height Model (CHM)")
 
@@ -401,7 +405,6 @@ def model_chm(lidar_path, kommune):
 
 
 if __name__ == "__main__":
-
     logger.setup_logger(logfile=True)
     logger = logging.getLogger(__name__)
 
