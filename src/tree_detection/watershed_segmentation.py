@@ -56,7 +56,6 @@ def get_spatial_resolution():
 
 
 def detect_watershed(neighbourhood_list, r_chm):
-
     logger.info("1. Start watershed segmentation method...")
     logger.info("-" * 100)
     logger.info("Processing neighbourhoods...")
@@ -264,16 +263,16 @@ def detect_watershed(neighbourhood_list, r_chm):
         # ------------------------------------------------------ #
         # 1.6 ADD METHOD AS ATTRIBUTE TO TREES
         # ------------------------------------------------------ #
-        
+
         # init attribute classes
         LaserAttribute = LaserAttributes(
-            filegdb_path,v_crown_watershed,v_top_watershed
-            )
-        
+            filegdb_path, v_crown_watershed, v_top_watershed
+        )
+
         AdminAttribute = AdminAttributes(
-            filegdb_path,v_crown_watershed,v_top_watershed
-            )
-        
+            filegdb_path, v_crown_watershed, v_top_watershed
+        )
+
         logger.info("\t1.6 Add tree detection method as attribute to trees.")
         segmentation_method = '"watershed_segmentation"'
         LaserAttribute.attr_segMethod(segmentation_method)
@@ -329,7 +328,6 @@ def detect_watershed(neighbourhood_list, r_chm):
 
 
 def detect_other_trees(neighbourhood_list):
-
     logger.info(
         "2. Start detecting trees that are NOT detected with the watershed segmentation method..."
     )
@@ -545,11 +543,11 @@ def detect_other_trees(neighbourhood_list):
 
         # init attribute classes
         LaserAttribute = LaserAttributes(
-            filegdb_path,v_other_crowns,v_other_tops
-            )
-        
+            filegdb_path, v_other_crowns, v_other_tops
+        )
+
         AdminAttribute = AdminAttributes(
-            filegdb_path,v_other_crowns,v_other_tops
+            filegdb_path, v_other_crowns, v_other_tops
         )
 
         logger.info("\t2.7 Add tree detection method as attribute to trees.")
@@ -620,7 +618,6 @@ def detect_other_trees(neighbourhood_list):
 
 
 def merge_trees(neighbourhood_list):
-
     logger.info("3. Merge Trees with Other Trees...")
     logger.info("-" * 100)
     logger.info("Processing neighbourhoods...")
@@ -701,7 +698,6 @@ def merge_trees(neighbourhood_list):
 
 
 def calculate_attributes():
-
     logger.info("5. Calculate Attributes...")
     logger.info("-" * 100)
     logger.info("Processing neighbourhoods...")
@@ -734,10 +730,12 @@ def calculate_attributes():
         # 4. Calculate attributes
         # ------------------------------------------------------ #
 
-        # init class to calculate attributes 
+        # init class to calculate attributes
         AdminAttribute = AdminAttributes(filegdb_path, v_crown_temp, v_top_temp)
         LaserAttribute = LaserAttributes(filegdb_path, v_crown_temp, v_top_temp)
-        GeometryAttribute = GeometryAttributes(filegdb_path, v_crown_temp, v_top_temp)
+        GeometryAttribute = GeometryAttributes(
+            filegdb_path, v_crown_temp, v_top_temp
+        )
         # calculate attributes for tree crowns
         # nb_code in loop
         AdminAttribute.delete_adminAttr()
@@ -764,7 +762,6 @@ def calculate_attributes():
 
 
 def detect_falsePositives(neighbourhood_list):
-
     logger.info("4. Detect False Positives...")
     logger.info("-" * 100)
     logger.info("Processing neighbourhoods...")
@@ -871,7 +868,6 @@ def detect_falsePositives(neighbourhood_list):
 
 
 if __name__ == "__main__":
-
     logger.setup_logger(logfile=True)
     logger = logging.getLogger(__name__)
 
@@ -910,6 +906,8 @@ if __name__ == "__main__":
             n_test = ["420409", "420411"]
         if kommune == "bodo":
             n_test = ["180402", "180403"]
+        if kommune == "baerum":
+            n_test = ["302401", "302412"]
         logger.info(
             "Test neighbourhoods in {} are {}: ".format(kommune, n_test)
         )

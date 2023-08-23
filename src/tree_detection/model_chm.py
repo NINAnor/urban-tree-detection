@@ -94,10 +94,6 @@ def model_chm(lidar_path, kommune):
     )
     logger.info(tile_list)
 
-    tile_list = ["513_133"]  # sentrum
-    # tile_list = ['512_134', '512_135']
-    # tile_list = ['513_132', '513_133', '513_134', '513_135']
-    # tile_list = ['514_132', '514_133', '514_134', '514_135']
     # Detect trees per tile in tile_list
     for tile_code in tile_list:
         # skip tiles that are already processed
