@@ -485,6 +485,4 @@ def topology_crownTop(input_tree, selecting_tree, output_tree):
 
 
 if __name__ == "__main__":
-
-    logger.setup_logger(logfile=False)
-    logger = logging.getLogger(__name__)
+    pass

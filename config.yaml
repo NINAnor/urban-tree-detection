@@ -5,6 +5,7 @@ municipality: baerum
 paths:
   #data_path: ${PROJECT}/data/
   data_path: C:\Data\offline_data\trekroner\data
+  data_path: ${LOCAL_GIT}/NINAnor/urban-treeDetection/data
   tool_path: ${LOCAL_GIT}/NINAnor/urban-treeDetection/tools/
   fkb_building: ${FKB_BUILDING_PATH}
   fkb_water: ${FKB_WATER_PATH}
