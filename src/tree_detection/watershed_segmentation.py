@@ -15,7 +15,8 @@ import logging
 
 # local sub-package modules
 import tree
-import split_chm
+from split_chm import split_chm_nb
+from merge_trees import merge_trees
 from src import LaserAttributes
 from src import AdminAttributes
 from src import GeometryAttributes
@@ -25,7 +26,6 @@ from src import arcpy_utils as au
 from src import (
     MUNICIPALITY,
     DATA_PATH,
-    RAW_PATH,
     INTERIM_PATH,
     PROCESSED_PATH,
     SPATIAL_REFERENCE,
@@ -405,7 +405,7 @@ def detect_other_trees(neighbourhood_list):
 
         # if exists continue
         if not arcpy.Exists(v_chm_polygons):
-            logging.info("\t2.1 Convert CHM to polygons")
+            logger.info("\t2.1 Convert CHM to polygons")
             arcpy.conversion.RasterToPolygon(
                 in_raster=r_chm_neighb,
                 out_polygon_features=v_chm_polygons,
@@ -419,7 +419,7 @@ def detect_other_trees(neighbourhood_list):
         # 2.2 Select polygons that do not intersect with watershed trees
         # ------------------------------------------------------ #
 
-        logging.info(
+        logger.info(
             "\t2.2 Select polygons that do not intersect with watershed trees"
         )
         # create a layer for the converted CHM polygons
@@ -445,7 +445,7 @@ def detect_other_trees(neighbourhood_list):
         # ------------------------------------------------------ #
         # 2.3 Disolve polygons to crowns
         # ------------------------------------------------------ #
-        logging.info("\t2.3 Disolve polygons to crowns")
+        logger.info("\t2.3 Disolve polygons to crowns")
         arcpy.management.Dissolve(
             in_features=v_other_crowns_temp,
             out_feature_class=v_other_crowns_dissolved,
@@ -460,7 +460,7 @@ def detect_other_trees(neighbourhood_list):
         # 2.4 Delete crowns that are not whithin the neighbourhood
         # ------------------------------------------------------ #
 
-        logging.info(
+        logger.info(
             "\t2.4 Delete other trees that are not located whithin the neighbourhood."
         )
 
@@ -627,86 +627,6 @@ def detect_other_trees(neighbourhood_list):
     logger.info("-" * 100)
 
     # ------------------------------------------------------ #
-
-
-def merge_trees(neighbourhood_list):
-    logger.info("3. Merge Trees with Other Trees...")
-    logger.info("-" * 100)
-    logger.info("Processing neighbourhoods...")
-    logger.info(neighbourhood_list)
-
-    # Detect trees per neighbourhood
-    for n_code in neighbourhood_list:
-        logger.info("\t---------------------".format(n_code))
-        logger.info("\tPROCESSING NEIGHBOURHOOD <<{}>>".format(n_code))
-        logger.info("\t---------------------".format(n_code))
-
-        # temporary filegdb containing detected trees per neighbourhood
-        filegdb_path = os.path.join(
-            tree_detection_path, "tree_detection_b" + n_code + ".gdb"
-        )
-
-        # workspace settings
-        env.overwriteOutput = True
-        env.outputCoordinateSystem = arcpy.SpatialReference(SPATIAL_REFERENCE)
-        # not necessary as full paths are used, change accordingly if you work with relative paths
-        # env.workspace = filegdb_path
-
-        # ------------------------------------------------------ #
-        # Dynamic Path Variables
-        # ------------------------------------------------------ #
-
-        v_top_watershed = os.path.join(
-            filegdb_path, "tops_watershed_" + n_code
-        )  # RESULTING tree tops from watershed
-        v_crown_watershed = os.path.join(
-            filegdb_path, "crowns_watershed_" + n_code
-        )  # RESULTING tree crowns from watershed
-        v_other_crowns = os.path.join(
-            filegdb_path, "crowns_other_" + n_code
-        )  # Resulting other crowns
-        v_other_tops = os.path.join(
-            filegdb_path, "tops_other_" + n_code
-        )  # Resulting other tops
-
-        v_top_temp = os.path.join(filegdb_path, "tops_tmp_" + n_code)
-        v_crown_temp = os.path.join(filegdb_path, "crowns_tmp_" + n_code)
-
-        v_top = os.path.join(filegdb_path, "tops_" + n_code)
-        v_crown = os.path.join(filegdb_path, "crowns_" + n_code)
-
-        # ------------------------------------------------------ #
-        # 3. Merge detected trees into one file
-        # ------------------------------------------------------ #
-        logger.info("-" * 100)
-        logger.info("3.1 Merging detected trees into one file...")
-        logger.info("-" * 100)
-
-        start_time1 = time.time()
-        if arcpy.Exists(v_top):
-            logger.info("\tThe tree tops are already merged. Continue ...")
-        else:
-            logger.info(
-                "\tMerge tree tops for all tiles into one polygon file."
-            )
-            arcpy.Merge_management(
-                inputs=[v_top_watershed, v_other_tops], output=v_top_temp
-            )
-        end_time1(start_time1)
-
-        start_time1 = time.time()
-        if arcpy.Exists(v_crown):
-            logger.info("\tThe tree crowns are already merged. Continue ...")
-        else:
-            logger.info(
-                "\t\tMerge tree crowns for all tiles into one polygon file."
-            )
-            arcpy.Merge_management(
-                inputs=[v_crown_watershed, v_other_crowns], output=v_crown_temp
-            )
-        end_time1(start_time1)
-
-    logger.info("Finished merging the detected trees into one file ...")
 
 
 def calculate_attributes():
@@ -1025,12 +945,12 @@ if __name__ == "__main__":
     # ------------------------------------------------------ #
 
     # TODO move functions to separate modules and run from root
-    split_chm.split_chm_nb(
+    split_chm_nb(
         neighbourhood_list, split_neighbourhoods_gdb, r_chm, split_chm_gdb
     )
     # detect_watershed(neighbourhood_list, r_chm)
     detect_other_trees(neighbourhood_list)
-    merge_trees(neighbourhood_list)
+    merge_trees(neighbourhood_list, tree_detection_path)
     calculate_attributes()
     detect_falsePositives(neighbourhood_list)
 

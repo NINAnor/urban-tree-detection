@@ -38,6 +38,7 @@ from src import logger
 # ------------------------------------------------------ #
 
 
+# TODO move to decorators
 def end_time1(start_time1):
     end_time1 = time.time()
     execution_time1 = end_time1 - start_time1
@@ -45,6 +46,7 @@ def end_time1(start_time1):
 
 
 # define the spatial resolution of the DSM/DTM/CHM grid based on lidar point density
+# TODO move to config
 def get_spatial_resolution():
     if POINT_DENSITY >= 4:
         spatial_resolution = 0.25
@@ -401,7 +403,6 @@ def model_chm(lidar_path, kommune):
 
 
 if __name__ == "__main__":
-    logger.setup_logger(logfile=True)
     logger = logging.getLogger(__name__)
 
     # start timer
