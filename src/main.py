@@ -1,12 +1,14 @@
 import logging
 
 from src import *
+
+from src.logger import setup_logging, setup_custom_logging  # noqa
 import prepare_lidar
 import segment_trees
 
 
 # set up logger
-logger.setup_logger(logfile=True)
+setup_custom_logging()
 logger = logging.getLogger(__name__)
 
 # check municipality
@@ -21,6 +23,8 @@ if confirm_municipality != "y":
 
 # run scripts
 # TODO add subroutines
-prepare_lidar.main(MUNICIPALITY)
+# prepare_lidar.main(MUNICIPALITY)
 # create main()
-segment_trees.main()
+# segment_trees.main()
+
+logger.info("Done.")

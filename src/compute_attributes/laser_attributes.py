@@ -5,8 +5,8 @@ import logging
 from src import arcpy_utils as au
 from src import logger
 
-logger.setup_logger(logfile=False)
 logger = logging.getLogger(__name__)
+
 
 class LaserAttributes:
     """
@@ -27,8 +27,8 @@ class LaserAttributes:
     - attr_segMethod(self, segmentation_method)
     - attr_topHeight(self, v_top, r_chm_h, r_dtm, str_multiplier)
     - join_topAttr_toCrown(self)
-    
-   """
+
+    """
 
     def __init__(self, path: str, crown_filename: str, point_filename: str):
         self.path = path
@@ -71,7 +71,6 @@ class LaserAttributes:
         au.calculateField_ifEmpty(
             self.top_filename, "seg_method", segmentation_method
         )
-
 
     def attr_topHeight(
         self, v_top, r_chm_h: str, r_dtm: str, str_multiplier: str
@@ -172,5 +171,3 @@ class LaserAttributes:
         au.round_fields_two_decimals(
             self.crown_filename, ["tree_height_laser", "tree_altit"]
         )
-
-

@@ -5,7 +5,6 @@ import logging
 from src import arcpy_utils as au
 from src import logger
 
-logger.setup_logger(logfile=False)
 logger = logging.getLogger(__name__)
 
 # ------------------------------------------------------ #
@@ -16,6 +15,7 @@ logger = logging.getLogger(__name__)
 # GUID: 38 characters
 # TEXT: 255 characters
 # ------------------------------------------------------ #
+
 
 class AdminAttributes:
     """
@@ -37,14 +37,14 @@ class AdminAttributes:
     - join_crownID_toTop(self)
     - attr_neighbCode(self, n_code)
     - delete_adminAttr(self)
-  
+
     """
-    
+
     def __init__(self, path: str, crown_filename: str, point_filename: str):
         self.path = path
         self.crown_filename = crown_filename
         self.top_filename = point_filename
-        
+
     def attr_GlobalID(self):
         """
         Compute a GlobalID for crown polygons and add it to the crown feature class as GlobalID
@@ -91,7 +91,7 @@ class AdminAttributes:
             logger.info(
                 f"\tAll rows in field are already populated. Exiting function."
             )
-    
+
     def join_crownID_toTop(self):
         """
         Joins the attribtue 'crown_id' (LONG) to the top feature class.
@@ -155,7 +155,7 @@ class AdminAttributes:
         )
         au.addField_ifNotExists(self.top_filename, "bydelnummer", "TEXT")
         au.calculateField_ifEmpty(self.top_filename, "bydelnummer", n_code)
-        
+
     def delete_adminAttr(self):
         """
         Deletes the attributes 'Id', 'gridcode', 'ORIG_FID' from the crown and top feature class.
@@ -169,4 +169,3 @@ class AdminAttributes:
         arcpy.DeleteField_management(
             self.top_filename, ["Id", "gridcode", "ORIG_FID"]
         )
-    

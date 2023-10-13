@@ -16,18 +16,15 @@ from src import *
 # FUNCTIONS
 # --------------------------------------------------------------------------- #
 
+
 def main():
     logger.info("Starting main()")
 
     logger.info("Finished main()")
 
 
-
-
 if __name__ == "__main__":
-
     # setup logger
-    logger.setup_logger(logfile=True)
     logger = logging.getLogger(__name__)
 
     # check municipality
@@ -39,5 +36,5 @@ if __name__ == "__main__":
     if confirm_municipality != "y":
         logger.info("User disagreed with the municipality.")
         exit()
-        
+
     main()

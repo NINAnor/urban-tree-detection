@@ -33,6 +33,8 @@ from src import (
 )
 from src import logger
 
+
+logger = logging.getLogger(__name__)
 # ------------------------------------------------------ #
 # Functions
 # ------------------------------------------------------ #
@@ -403,8 +405,6 @@ def model_chm(lidar_path, kommune):
 
 
 if __name__ == "__main__":
-    logger = logging.getLogger(__name__)
-
     # start timer
     start_time0 = time.time()
     kommune = MUNICIPALITY

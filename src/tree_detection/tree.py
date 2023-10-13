@@ -6,7 +6,6 @@ import logging
 
 from src import logger
 
-logger.setup_logger(logfile=False)
 logger = logging.getLogger(__name__)
 
 # ------------------------------------------------------ #
@@ -46,7 +45,11 @@ def create_DTM(d_las, r_dtm, spatial_resolution, study_area_path):
     spatial_resolution (_type_): _description_
     """
 
-    logger.info("\t\tCreating DTM ({}x{}m) ...".format(spatial_resolution, spatial_resolution))
+    logger.info(
+        "\t\tCreating DTM ({}x{}m) ...".format(
+            spatial_resolution, spatial_resolution
+        )
+    )
 
     # select DTM points (class 2 = ground points)
     l_dtm = arcpy.CreateUniqueName("dtm_lyr")
@@ -81,7 +84,7 @@ def create_DTM(d_las, r_dtm, spatial_resolution, study_area_path):
         in_raster=temp,
         in_mask_data=study_area_path,
     )
-    
+
     r_masked.save(r_dtm)
     arcpy.Delete_management(temp)
 
@@ -158,9 +161,7 @@ def create_CHM(r_dtm, r_dsm, r_chm):
 # ------------------------------------------------------ #
 
 
-def create_RGB(
-    d_las: str, r_rgb: str, study_area_path: str
-):
+def create_RGB(d_las: str, r_rgb: str, study_area_path: str):
     """_summary_
 
     Args:
@@ -177,7 +178,7 @@ def create_RGB(
         interpolation_type="BINNING NEAREST NATURAL_NEIGHBOR",
         data_type="INT",  # must be INT
         sampling_type="CELLSIZE",
-        sampling_value="1", # must be 1
+        sampling_value="1",  # must be 1
         z_factor="1",
     )
 
@@ -343,6 +344,7 @@ def watershed_segmentation(
     Returns:
         _type_: _description_
     """
+
     # flip CHM
     def flip_CHM(r_chm_input):
         logger.info("\t\tFlipping CHM...")
@@ -391,7 +393,6 @@ def watershed_segmentation(
 def identify_treeTops(
     r_sinks, r_focflow, v_top_poly, v_top_singlepoly, v_top_watershed
 ):
-
     # Identify tree tops (I) by identifying focal flow
     def identify_focalFlow():
         logger.info("\t\tIdentifying tree tops by focal flow...")

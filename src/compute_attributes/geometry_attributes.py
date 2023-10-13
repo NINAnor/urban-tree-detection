@@ -5,8 +5,8 @@ import logging
 from src import arcpy_utils as au
 from src import logger
 
-logger.setup_logger(logfile=False)
 logger = logging.getLogger(__name__)
+
 
 class GeometryAttributes:
     """
@@ -28,8 +28,9 @@ class GeometryAttributes:
     - attr_crownVolume(self)
     - attr_enclosingCircle(self, keep_temp: bool)
     - attr_convexHull(self, keep_temp: bool)
-    - attr_envelope(self, keep_temp: bool)  
+    - attr_envelope(self, keep_temp: bool)
     """
+
     def __init__(self, path: str, crown_filename: str, point_filename: str):
         self.path = path
         self.crown_filename = crown_filename
@@ -111,7 +112,7 @@ class GeometryAttributes:
         au.round_fields_two_decimals(
             self.crown_filename, ["crown_area", "crown_peri"]
         )
-        
+
     def attr_crownVolume(self):
         """
         Adds the attribute 'tree_volume' (FlOAT) to the crown feature class.

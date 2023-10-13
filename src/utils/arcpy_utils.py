@@ -9,7 +9,6 @@ from src import logger
 
 # from logger import setup_logger
 
-logger.setup_logger(logfile=False)
 logger = logging.getLogger(__name__)
 
 # --------------------------------------------------------------------------- #
@@ -417,7 +416,6 @@ def rasterList_toMosaic(
 def split_neighbourhoods(
     neighbourhood_path, n_field_name, split_neighbourhoods_gdb
 ):
-
     # split neighbourhoods features into separate features and save them as separate layers in a filegdb
 
     # create a gdb for neighbourhoods
@@ -442,7 +440,6 @@ def split_neighbourhoods(
 
 
 def get_neighbourhood_list(neighbourhood_path, n_field_name):
-
     get_list = lambda neighbourhood_path, n_field_name: [
         row[0]
         for row in arcpy.da.SearchCursor(neighbourhood_path, n_field_name)
@@ -453,7 +450,6 @@ def get_neighbourhood_list(neighbourhood_path, n_field_name):
 
 
 if __name__ == "__main__":
-
     logger.setup_logger(logfile=False)
     logger = logging.getLogger(__name__)
 

@@ -58,6 +58,7 @@ def get_spatial_resolution():
 
 
 def detect_watershed(neighbourhood_list, r_chm):
+    logger = logging.getLogger(__name__)
     logger.info("1. Start watershed segmentation method...")
     logger.info("-" * 100)
     logger.info("Processing neighbourhoods...")
@@ -330,6 +331,7 @@ def detect_watershed(neighbourhood_list, r_chm):
 
 
 def detect_other_trees(neighbourhood_list):
+    logger = logging.getLogger(__name__)
     logger.info(
         "2. Start detecting trees that are NOT detected with the watershed segmentation method..."
     )
@@ -629,7 +631,9 @@ def detect_other_trees(neighbourhood_list):
     # ------------------------------------------------------ #
 
 
+# TODO move to separate module
 def calculate_attributes():
+    logger = logging.getLogger(__name__)
     logger.info("5. Calculate Attributes...")
     logger.info("-" * 100)
     logger.info("Processing neighbourhoods...")
@@ -693,7 +697,9 @@ def calculate_attributes():
     logger.info("Finished calculating attributes for the detected trees ...")
 
 
+# TODO move to separate module
 def detect_falsePositives(neighbourhood_list):
+    logger = logging.getLogger(__name__)
     logger.info("4. Detect False Positives...")
     logger.info("-" * 100)
     logger.info("Processing neighbourhoods...")
@@ -800,7 +806,10 @@ def detect_falsePositives(neighbourhood_list):
 
 
 if __name__ == "__main__":
-    logger.setup_logger(logfile=True)
+    # set up logger
+    from src.logger import setup_custom_logging  # noqa
+
+    setup_custom_logging()
     logger = logging.getLogger(__name__)
 
     # start timer

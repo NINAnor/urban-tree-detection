@@ -11,8 +11,6 @@ from src import (
     POINT_DENSITY,
 )
 
-logger = logging.getLogger(__name__)
-
 
 # define the spatial resolution of the DSM/DTM/CHM grid based on lidar point density
 # move to config
@@ -29,6 +27,7 @@ def get_spatial_resolution():
 def split_chm_nb(
     neighbourhood_list, split_neighbourhoods_gdb, r_chm, split_chm_gdb
 ):
+    logger = logging.getLogger(__name__)
     logger.info("Splitting neighbourhoods...")
     logger.info("-" * 100)
     logger.info("Processing neighbourhoods...")
@@ -94,6 +93,12 @@ def split_chm_nb(
 
 
 if __name__ == "__main__":
+    # set up logger
+    from src.logger import setup_custom_logging  # noqa
+
+    setup_custom_logging()
+    logger = logging.getLogger(__name__)
+
     kommune = MUNICIPALITY
 
     # admin data

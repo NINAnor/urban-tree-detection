@@ -7,6 +7,8 @@ __author__ = """Willeke A'Campo"""
 __email__ = "willeke.acampo@nina.com"
 __version__ = "0.1.0"
 
+import logging
+
 # Import specific functions and classes
 from src.utils.config import (
     ADMIN_GDB,
@@ -31,9 +33,12 @@ from src.utils.config import (
     MIN_HEIGHT,
     FOCAL_MAX_RADIUS,
 )
-from src.utils import logger
+from src.logger import setup_logging  # noqa
+from src.utils import yaml_load  # noqa
+
 from src.utils import arcpy_utils
 from src.compute_attributes.admin_attributes import AdminAttributes
-from src.compute_attributes.laser_attributes import LaserAttributes 
+from src.compute_attributes.laser_attributes import LaserAttributes
 from src.compute_attributes.geometry_attributes import GeometryAttributes
 
+logging.getLogger(__name__).addHandler(logging.NullHandler())
