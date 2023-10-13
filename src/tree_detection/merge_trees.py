@@ -22,6 +22,7 @@ from src import logger
 
 
 def merge_trees(neighbourhood_list, tree_detection_path):
+    logger = logging.getLogger(__name__)
     logger.info("3. Merge Trees with Other Trees...")
     logger.info("-" * 100)
     logger.info("Processing neighbourhoods...")
