@@ -15,6 +15,7 @@ import logging
 
 # local sub-package modules
 import tree
+import split_chm
 from src import LaserAttributes
 from src import AdminAttributes
 from src import GeometryAttributes
@@ -45,6 +46,7 @@ def end_time1(start_time1):
 
 
 # define the spatial resolution of the DSM/DTM/CHM grid based on lidar point density
+# move to config
 def get_spatial_resolution():
     if POINT_DENSITY >= 4:
         spatial_resolution = 0.25
@@ -388,20 +390,30 @@ def detect_other_trees(neighbourhood_list):
             filegdb_path, "tops_other_" + n_code
         )  # Resulting other tops
 
+        if arcpy.Exists(v_other_crowns) and arcpy.Exists(v_other_tops):
+            logger.info(
+                "\t\tThe other-trees for neighbourhood <<{}>> exist in database. Continue ...".format(
+                    n_code
+                )
+            )
+            continue
+
         # ------------------------------------------------------ #
         # 2.1 Convert CHM to polygons
         # TODO move to tree module
         # ------------------------------------------------------ #
 
-        logging.info("\t2.1 Convert CHM to polygons")
-        arcpy.conversion.RasterToPolygon(
-            in_raster=r_chm_neighb,
-            out_polygon_features=v_chm_polygons,
-            simplify="SIMPLIFY",
-            raster_field="Value",
-            create_multipart_features="SINGLE_OUTER_PART",
-            max_vertices_per_feature=None,
-        )
+        # if exists continue
+        if not arcpy.Exists(v_chm_polygons):
+            logging.info("\t2.1 Convert CHM to polygons")
+            arcpy.conversion.RasterToPolygon(
+                in_raster=r_chm_neighb,
+                out_polygon_features=v_chm_polygons,
+                simplify="SIMPLIFY",
+                raster_field="Value",
+                create_multipart_features="SINGLE_OUTER_PART",
+                max_vertices_per_feature=None,
+            )
 
         # ------------------------------------------------------ #
         # 2.2 Select polygons that do not intersect with watershed trees
@@ -1013,8 +1025,10 @@ if __name__ == "__main__":
     # ------------------------------------------------------ #
 
     # TODO move functions to separate modules and run from root
-    # TODO add if and try statements
-    detect_watershed(neighbourhood_list, r_chm)
+    split_chm.split_chm_nb(
+        neighbourhood_list, split_neighbourhoods_gdb, r_chm, split_chm_gdb
+    )
+    # detect_watershed(neighbourhood_list, r_chm)
     detect_other_trees(neighbourhood_list)
     merge_trees(neighbourhood_list)
     calculate_attributes()
