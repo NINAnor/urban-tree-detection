@@ -9,36 +9,32 @@ __version__ = "0.1.0"
 
 import logging
 
-# Import specific functions and classes
-from src.utils.config import (
-    ADMIN_GDB,
-    AR5_LANDUSE_PATH,
-    TOOL_PATH,
-    DATA_PATH,
-    FKB_BUILDING_PATH,
-    FKB_WATER_PATH,
-    INTERIM_PATH,
-    IN_SITU_TREES_GDB,
-    LASER_TREES_GDB,
-    MUNICIPALITY,
-    PROCESSED_PATH,
-    RAW_PATH,
-    SSB_DISTRICT_PATH,
-    SPATIAL_REFERENCE,
-    COORD_SYSTEM,
-    URBAN_TREES_GDB,
-    RGB_AVAILABLE,
-    VEG_CLASSES_AVAILABLE,
-    POINT_DENSITY,
-    MIN_HEIGHT,
-    FOCAL_MAX_RADIUS,
-)  # noqa
 from src.logger import setup_logging  # noqa
 from src.utils import yaml_load  # noqa
 
-from src.utils import arcpy_utils
-from src.compute_attributes.admin_attributes import AdminAttributes
-from src.compute_attributes.laser_attributes import LaserAttributes
-from src.compute_attributes.geometry_attributes import GeometryAttributes
+# Import specific functions and classes
+from src.utils.config import (  # noqa
+    ADMIN_GDB,
+    AR5_LANDUSE_PATH,
+    COORD_SYSTEM,
+    DATA_PATH,
+    FKB_BUILDING_PATH,
+    FKB_WATER_PATH,
+    FOCAL_MAX_RADIUS,
+    IN_SITU_TREES_GDB,
+    INTERIM_PATH,
+    LASER_TREES_GDB,
+    MIN_HEIGHT,
+    MUNICIPALITY,
+    POINT_DENSITY,
+    PROCESSED_PATH,
+    RAW_PATH,
+    RGB_AVAILABLE,
+    SPATIAL_REFERENCE,
+    SSB_DISTRICT_PATH,
+    TOOL_PATH,
+    URBAN_TREES_GDB,
+    VEG_CLASSES_AVAILABLE,
+)
 
 logging.getLogger(__name__).addHandler(logging.NullHandler())

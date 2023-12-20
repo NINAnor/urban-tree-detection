@@ -5,14 +5,9 @@ import arcpy
 from arcpy import env
 
 # local sub-package utils
-from src import (
-    DATA_PATH,
-    INTERIM_PATH,
-    MUNICIPALITY,
-    SPATIAL_REFERENCE,
-)  # noqa
-from src import arcpy_utils as au  # noqa
 from src import logger  # noqa
+from src import DATA_PATH, INTERIM_PATH, MUNICIPALITY, SPATIAL_REFERENCE  # noqa
+from src import arcpy_utils as au  # noqa
 
 # local sub-package modules
 
