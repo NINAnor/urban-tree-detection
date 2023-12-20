@@ -8,3 +8,6 @@
 - set up logging according to linux 
 - move functions to separate modules and run from root (use pipelining?)
 
+- update project structure (src)
+- update template.env
+- move variables to conifg/parameters.yaml
