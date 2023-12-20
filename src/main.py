@@ -1,11 +1,7 @@
 import logging
 
 from src import *
-
-from src.logger import setup_logging, setup_custom_logging  # noqa
-import prepare_lidar
-import segment_trees
-
+from src.logger import setup_custom_logging, setup_logging  # noqa
 
 # set up logger
 setup_custom_logging()

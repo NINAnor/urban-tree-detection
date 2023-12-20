@@ -1,11 +1,9 @@
-import os
-
-import shutil
 import logging
-import dotenv
-from dotenv import dotenv_values
+import os
+import shutil
 
-from src import RAW_PATH, MUNICIPALITY
+
+from src import MUNICIPALITY, RAW_PATH
 
 kommune = MUNICIPALITY
 

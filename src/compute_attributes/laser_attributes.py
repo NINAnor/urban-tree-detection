@@ -1,6 +1,6 @@
-import arcpy
-import os
 import logging
+
+import arcpy
 
 from src import arcpy_utils as au
 from src import logger
@@ -81,7 +81,7 @@ class LaserAttributes:
         """
         logger.info("\tATTRIBUTE | tree_height_laser and tree_altit:")
         logger.info(
-            f"\tExtracting tree height (from CHM) and tree altitude (from DTM) to tree points... "
+            "\tExtracting tree height (from CHM) and tree altitude (from DTM) to tree points... "
         )
 
         # Extract tree height (from CHM) and tree altitude (from DTM) to tree points as FLOAT values
@@ -142,7 +142,7 @@ class LaserAttributes:
             "\t\tJOIN ATTRIBUTE | tree_heigth and tree_altit to crown feature class:"
         )
         logger.info(
-            f"\tJoining the tree top attributes: tree_height_laser and tree_altit to the crown polygons... "
+            "\tJoining the tree top attributes: tree_height_laser and tree_altit to the crown polygons... "
         )
         au.addField_ifNotExists(
             self.crown_filename, "tree_height_laser", "FLOAT"
@@ -165,7 +165,7 @@ class LaserAttributes:
             )
         else:
             logger.info(
-                f"\tAll rows in field are already populated. Exiting function."
+                "\tAll rows in field are already populated. Exiting function."
             )
 
         au.round_fields_two_decimals(

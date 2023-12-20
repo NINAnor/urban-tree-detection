@@ -1,18 +1,17 @@
 import logging
 
 # local packages
-from src import logger
 from src import (
-    FKB_BUILDING_PATH,
-    FKB_WATER_PATH,
-    SSB_DISTRICT_PATH,
     AR5_LANDUSE_PATH,
     DATA_PATH,
-    RAW_PATH,
+    FKB_BUILDING_PATH,
+    FKB_WATER_PATH,
     INTERIM_PATH,
     PROCESSED_PATH,
+    RAW_PATH,
+    SSB_DISTRICT_PATH,
+    logger,
 )
-
 
 # configure logger
 logger.setup_logger(logfile=True)

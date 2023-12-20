@@ -1,6 +1,8 @@
 import os
-from src.utils import yaml_load
+
 from dotenv import load_dotenv
+
+from src.utils import yaml_load
 
 # --------------------------------------------------------------------------- #
 # Load YAML dictionairy

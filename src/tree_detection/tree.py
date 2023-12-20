@@ -1,8 +1,9 @@
+import logging
 import os
+
 import arcpy
 from arcpy import env
 from arcpy.sa import *
-import logging
 
 from src import logger
 

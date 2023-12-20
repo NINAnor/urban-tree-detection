@@ -7,7 +7,7 @@ into the urban tree geodatabase
 import os
 
 # import local packages
-from src import IN_SITU_TREES_GDB, URBAN_TREES_GDB, LASER_TREES_GDB
+from src import IN_SITU_TREES_GDB, LASER_TREES_GDB, URBAN_TREES_GDB
 from src import arcpy_utils as au
 
 # --------------------------------------------------------------------------- #

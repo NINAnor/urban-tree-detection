@@ -2,8 +2,9 @@
 
 import os
 import re
-import yaml
 from typing import IO, Union
+
+import yaml
 from dotenv import load_dotenv
 
 user_dir = os.path.join(os.path.expanduser("~"))

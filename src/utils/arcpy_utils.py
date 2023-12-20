@@ -1,9 +1,10 @@
 """util functions for working with arcpy."""
-import arcpy
-from arcpy.sa import *
-from arcpy.ia import *
-import os
 import logging
+import os
+
+import arcpy
+from arcpy.ia import *
+from arcpy.sa import *
 
 from src import logger
 

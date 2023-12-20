@@ -7,32 +7,32 @@
 # Dependencies: ArcGIS Pro 3.0, 3D analyst, image analyst, spatial analyst
 # ---------------------------------------------------------------------------
 
+import logging
 import os
 import time
+
 import arcpy
-from arcpy import env
-from arcpy.ia import *
-import logging
 
 # local modules
 import tree
+from arcpy import env
+from arcpy.ia import *
 
 # local sub-package utils
-from src import arcpy_utils as au
 from src import (
-    MUNICIPALITY,
-    DATA_PATH,
-    INTERIM_PATH,
-    SPATIAL_REFERENCE,
     COORD_SYSTEM,
-    RGB_AVAILABLE,
-    VEG_CLASSES_AVAILABLE,
-    POINT_DENSITY,
-    MIN_HEIGHT,
+    DATA_PATH,
     FOCAL_MAX_RADIUS,
+    INTERIM_PATH,
+    MIN_HEIGHT,
+    MUNICIPALITY,
+    POINT_DENSITY,
+    RGB_AVAILABLE,
+    SPATIAL_REFERENCE,
+    VEG_CLASSES_AVAILABLE,
 )
+from src import arcpy_utils as au
 from src import logger
-
 
 logger = logging.getLogger(__name__)
 # ------------------------------------------------------ #
@@ -102,9 +102,9 @@ def model_chm(lidar_path, kommune):
     for tile_code in tile_list:
         # skip tiles that are already processed
 
-        logger.info("\t---------------------".format(tile_code))
+        logger.info("\t---------------------".format())
         logger.info("\tPROCESSING TILE <<{}>>".format(tile_code))
-        logger.info("\t---------------------".format(tile_code))
+        logger.info("\t---------------------".format())
 
         # layer paths
         l_las_folder = os.path.join(

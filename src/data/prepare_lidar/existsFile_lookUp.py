@@ -1,7 +1,6 @@
 import csv
 import os
 
-
 kommune = "baerum"
 root = r"P:\152022_itree_eco_ifront_synliggjore_trars_rolle_i_okosyst\raw_data"
 

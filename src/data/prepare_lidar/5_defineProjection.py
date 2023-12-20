@@ -1,9 +1,9 @@
-import arcpy
-from arcpy import env
-
 import os
 from os import listdir
+
+import arcpy
 import dotenv
+from arcpy import env
 from dotenv import dotenv_values
 
 # filepath

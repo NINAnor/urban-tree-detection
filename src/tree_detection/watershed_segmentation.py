@@ -7,31 +7,32 @@
 # Dependencies: ArcGIS Pro 3.0, 3D analyst, image analyst, spatial analyst
 # ---------------------------------------------------------------------------
 
+import logging
 import os
 import time
+
 import arcpy
-from arcpy import env
-import logging
 
 # local sub-package modules
 import tree
-from split_chm import split_chm_nb
+from arcpy import env
 from merge_trees import merge_trees
-from src import LaserAttributes
-from src import AdminAttributes
-from src import GeometryAttributes
+from split_chm import split_chm_nb
 
 # local sub-package utils
-from src import arcpy_utils as au
 from src import (
-    MUNICIPALITY,
+    COORD_SYSTEM,
     DATA_PATH,
     INTERIM_PATH,
+    MUNICIPALITY,
+    POINT_DENSITY,
     PROCESSED_PATH,
     SPATIAL_REFERENCE,
-    COORD_SYSTEM,
-    POINT_DENSITY,
+    AdminAttributes,
+    GeometryAttributes,
+    LaserAttributes,
 )
+from src import arcpy_utils as au
 from src import logger
 
 # ------------------------------------------------------ #
@@ -66,9 +67,9 @@ def detect_watershed(neighbourhood_list, r_chm):
 
     # Detect trees per neighbourhood
     for n_code in neighbourhood_list:
-        logger.info("\t---------------------".format(n_code))
+        logger.info("\t---------------------".format())
         logger.info("\tPROCESSING NEIGHBOURHOOD <<{}>>".format(n_code))
-        logger.info("\t---------------------".format(n_code))
+        logger.info("\t---------------------".format())
 
         # temporary filegdb containing detected trees per neighbourhood
         filegdb_path = os.path.join(
@@ -341,9 +342,9 @@ def detect_other_trees(neighbourhood_list):
 
     # Detect trees per neighbourhood
     for n_code in neighbourhood_list:
-        logger.info("\t---------------------".format(n_code))
+        logger.info("\t---------------------".format())
         logger.info("\tPROCESSING NEIGHBOURHOOD <<{}>>".format(n_code))
-        logger.info("\t---------------------".format(n_code))
+        logger.info("\t---------------------".format())
 
         # temporary filegdb containing detected trees per neighbourhood
         filegdb_path = os.path.join(
@@ -641,9 +642,9 @@ def calculate_attributes():
 
     # Detect trees per neighbourhood
     for n_code in neighbourhood_list:
-        logger.info("\t---------------------".format(n_code))
+        logger.info("\t---------------------".format())
         logger.info("\tPROCESSING NEIGHBOURHOOD <<{}>>".format(n_code))
-        logger.info("\t---------------------".format(n_code))
+        logger.info("\t---------------------".format())
 
         # temporary filegdb containing detected trees per neighbourhood
         filegdb_path = os.path.join(
@@ -710,9 +711,9 @@ def detect_falsePositives(neighbourhood_list):
 
     # Detect trees per neighbourhood
     for n_code in neighbourhood_list:
-        logger.info("\t---------------------".format(n_code))
+        logger.info("\t---------------------".format())
         logger.info("\tPROCESSING NEIGHBOURHOOD <<{}>>".format(n_code))
-        logger.info("\t---------------------".format(n_code))
+        logger.info("\t---------------------".format())
 
         # temporary filegdb containing detected trees per neighbourhood
         filegdb_path = os.path.join(

@@ -1,12 +1,14 @@
 import os
+
 import arcpy
+
 from src import (
-    MUNICIPALITY,
     ADMIN_GDB,
     IN_SITU_TREES_GDB,
     LASER_TREES_GDB,
-    URBAN_TREES_GDB,
+    MUNICIPALITY,
     SPATIAL_REFERENCE,
+    URBAN_TREES_GDB,
 )
 from src import arcpy_utils as au
 
@@ -50,4 +52,4 @@ if not arcpy.Exists(ds_itree_trees):
         spatial_reference=SPATIAL_REFERENCE,
     )
 
-print(f"All datasets are created.")
+print("All datasets are created.")

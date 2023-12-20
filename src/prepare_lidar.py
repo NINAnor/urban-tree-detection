@@ -1,6 +1,6 @@
-import subprocess
 import logging
 import os
+import subprocess
 
 # local modules
 from src import *

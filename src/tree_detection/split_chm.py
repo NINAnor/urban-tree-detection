@@ -1,15 +1,17 @@
+import logging
 import os
+
 import arcpy
 from arcpy import env
-import logging
-from src import arcpy_utils as au
+
 from src import (
-    SPATIAL_REFERENCE,
-    MUNICIPALITY,
     DATA_PATH,
     INTERIM_PATH,
+    MUNICIPALITY,
     POINT_DENSITY,
+    SPATIAL_REFERENCE,
 )
+from src import arcpy_utils as au
 
 
 # define the spatial resolution of the DSM/DTM/CHM grid based on lidar point density
@@ -35,9 +37,9 @@ def split_chm_nb(
 
     # split chm by neighbourhood
     for n_code in neighbourhood_list:
-        logger.info("\t---------------------".format(n_code))
+        logger.info("\t---------------------".format())
         logger.info("\tPROCESSING NEIGHBOURHOOD <<{}>>".format(n_code))
-        logger.info("\t---------------------".format(n_code))
+        logger.info("\t---------------------".format())
 
         # workspace settings
         env.overwriteOutput = True

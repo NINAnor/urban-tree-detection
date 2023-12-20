@@ -1,24 +1,20 @@
+import logging
 import os
-import time
+
 import arcpy
 from arcpy import env
-import logging
-
-# local sub-package modules
 
 # local sub-package utils
-from src import arcpy_utils as au
 from src import (
-    MUNICIPALITY,
     DATA_PATH,
-    RAW_PATH,
     INTERIM_PATH,
-    PROCESSED_PATH,
+    MUNICIPALITY,
     SPATIAL_REFERENCE,
-    COORD_SYSTEM,
-    POINT_DENSITY,
 )
+from src import arcpy_utils as au
 from src import logger
+
+# local sub-package modules
 
 
 def merge_trees(neighbourhood_list, tree_detection_path):
@@ -30,9 +26,9 @@ def merge_trees(neighbourhood_list, tree_detection_path):
 
     # Detect trees per neighbourhood
     for n_code in neighbourhood_list:
-        logger.info("\t---------------------".format(n_code))
+        logger.info("\t---------------------".format())
         logger.info("\tPROCESSING NEIGHBOURHOOD <<{}>>".format(n_code))
-        logger.info("\t---------------------".format(n_code))
+        logger.info("\t---------------------".format())
 
         # temporary filegdb containing detected trees per neighbourhood
         filegdb_path = os.path.join(

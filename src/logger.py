@@ -164,16 +164,10 @@ class Test(object):
         """Log project configuration"""
         try:
             # loaded as module
-            from src import (
-                DATA_PATH,
-                SPATIAL_REFERENCE,
-            )  # noqa
+            from src import DATA_PATH, SPATIAL_REFERENCE  # noqa
         except ModuleNotFoundError:
             # standalone use of logger.py
-            from src.utils.config import (
-                DATA_PATH,
-                SPATIAL_REFERENCE,
-            )  # noqa
+            from src.utils.config import DATA_PATH, SPATIAL_REFERENCE  # noqa
 
         self.logger.info("Log project configuration:")
 

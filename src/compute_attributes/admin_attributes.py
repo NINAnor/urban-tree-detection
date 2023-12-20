@@ -1,6 +1,7 @@
-import arcpy
-import os
 import logging
+import os
+
+import arcpy
 
 from src import arcpy_utils as au
 from src import logger
@@ -89,7 +90,7 @@ class AdminAttributes:
                     cursor.updateRow(row)
         else:
             logger.info(
-                f"\tAll rows in field are already populated. Exiting function."
+                "\tAll rows in field are already populated. Exiting function."
             )
 
     def join_crownID_toTop(self):
@@ -99,7 +100,7 @@ class AdminAttributes:
 
         # temporary ID for tree points to avoid issues with au.join_and_copy()
         logger.info(
-            f"\tAdding a temporary id 'top_id' using ObjectID to tree top feature class... "
+            "\tAdding a temporary id 'top_id' using ObjectID to tree top feature class... "
         )
         arcpy.AddField_management(self.top_filename, "tmp_id", "LONG")
         with arcpy.da.UpdateCursor(
@@ -110,7 +111,7 @@ class AdminAttributes:
                 cursor.updateRow(row)
 
         logger.info(
-            f"\tJoining the tree crown id 'crown_id' to the tree top feature class... "
+            "\tJoining the tree crown id 'crown_id' to the tree top feature class... "
         )
         v_join = os.path.join(self.path, "join_tmp")
         arcpy.SpatialJoin_analysis(
