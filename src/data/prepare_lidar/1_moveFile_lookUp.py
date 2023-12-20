@@ -2,7 +2,6 @@ import logging
 import os
 import shutil
 
-
 from src import MUNICIPALITY, RAW_PATH
 
 kommune = MUNICIPALITY

@@ -32,7 +32,7 @@ from src.utils.config import (
     POINT_DENSITY,
     MIN_HEIGHT,
     FOCAL_MAX_RADIUS,
-)
+)  # noqa
 from src.logger import setup_logging  # noqa
 from src.utils import yaml_load  # noqa
 

@@ -10,9 +10,9 @@ from src import (
     INTERIM_PATH,
     MUNICIPALITY,
     SPATIAL_REFERENCE,
-)
-from src import arcpy_utils as au
-from src import logger
+)  # noqa
+from src import arcpy_utils as au  # noqa
+from src import logger  # noqa
 
 # local sub-package modules
 

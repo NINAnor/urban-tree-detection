@@ -6,6 +6,6 @@ Modules necessary for the module:
 - tree
 """
 
-from src import arcpy_utils
-from src import LaserAttributes
-from src import AdminAttributes
+from src import arcpy_utils  # noqa
+from src import LaserAttributes  # noqa
+from src import AdminAttributes  # noqa
