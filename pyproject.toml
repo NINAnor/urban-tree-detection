@@ -6,7 +6,23 @@ color = true
 [tool.isort]
 # https://pycqa.github.io/isort/docs/configuration/black_compatibility.html
 profile = "black"
+skip = [
+    "src/__init__.py", 
+    "src/utils/__init__.py", 
+    "src/compute_attributes/__init__.py",
+    "src/data/__init__.py",
+    "src/tree_detection/__init__.py"
+    ]
 
 [tool.ruff]
 fix = true
 ignore = ["E501"]
+
+[flake8]
+exclude = [
+    "src/__init__.py", 
+    "src/utils/__init__.py", 
+    "src/compute_attributes/__init__.py",
+    "src/data/__init__.py",
+    "src/tree_detection/__init__.py"
+    ]
